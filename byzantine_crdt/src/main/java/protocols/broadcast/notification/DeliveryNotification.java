@@ -24,7 +24,7 @@ public class DeliveryNotification extends ProtoNotification {
 		this.signature = signature;
 	}
 	
-	public Host getOriginalSender() {
+	public Host getSender() {
 		return this.sender;
 	}
 	

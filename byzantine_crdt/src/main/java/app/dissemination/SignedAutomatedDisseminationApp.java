@@ -14,14 +14,10 @@ import protocols.common.events.SecureNeighborUp;
 import pt.unl.fct.di.novasys.babel.core.GenericProtocol;
 import pt.unl.fct.di.novasys.babel.exceptions.HandlerRegistrationException;
 import pt.unl.fct.di.novasys.network.data.Host;
-import utils.SignaturesHelper;
 
 import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.util.HashMap;
 import java.util.Properties;
-import java.util.Random;
 
 /** @author Professor Joao Leitao (from Reliable Distributed Systems 2025 course) **/
 public class SignedAutomatedDisseminationApp extends GenericProtocol {
@@ -47,13 +43,11 @@ public class SignedAutomatedDisseminationApp extends GenericProtocol {
     private long broadCastTimer;
 
     private final int messageIndex;
-    private final HashMap<Host, PublicKey> publicKeys;
     private PrivateKey myPrivateKey;
 
     public SignedAutomatedDisseminationApp() {
         super(PROTO_NAME, PROTO_ID);
         messageIndex = 0;
-        this.publicKeys = new HashMap<>();
     }
 
     @Override
@@ -85,7 +79,6 @@ public class SignedAutomatedDisseminationApp extends GenericProtocol {
     public void uponChannelAvailable(SecureChannelAvailable notification, short protoSource) {
     	this.self = notification.getMyHost();
     	this.myPrivateKey = notification.getMyPrivateKey();
-    	this.publicKeys.put(self,notification.getMyPublicKey());
 
         logger.debug("Communication Channel is ready... starting wait time to start broadcasting ({}s)", prepareTime);
     	setupTimer(new StartTimer(), prepareTime * 1000L);
@@ -93,7 +86,6 @@ public class SignedAutomatedDisseminationApp extends GenericProtocol {
     
     public void uponNeighborUp(SecureNeighborUp notification, short protoSource) {
         logger.debug("Received NeighborUp notification for: {}", notification.getNeighbor());
-    	this.publicKeys.put(notification.getNeighbor(), notification.getPublicKey());
     }
     
     private void uponStartTimer(StartTimer startTimer, long timerId) {
@@ -118,7 +110,9 @@ public class SignedAutomatedDisseminationApp extends GenericProtocol {
     }
 
     private void uponDeliver(DeliveryNotification notification, short sourceProto) {
+        //Upon receiving a message, check signature and simply print it
     	String payload = new String(notification.getPayload(), StandardCharsets.US_ASCII);
+
     	logger.info("Received: {} ", payload);
     }
 
@@ -136,10 +130,6 @@ public class SignedAutomatedDisseminationApp extends GenericProtocol {
     }
  
     public static String randomCapitalLetters(int length) {
-        int leftLimit = 65; // letter 'A'
-        int rightLimit = 90; // letter 'Z'
-        Random random = new Random();
-        return random.ints(leftLimit, rightLimit + 1).limit(length)
-                .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append).toString();
+        return AutomatedDisseminationApp.randomCapitalLetters(length);
     }
 }

@@ -3,15 +3,17 @@
 # Automated Application Configuration
 
 payload_size 10
-prepare_time 10
+prepare_time 20
 cooldown_time 5
 run_time 500
 broadcast_interval 20000
 
-# Fault Model Configuration - crash or byzantine
-fault_model byzantine
+# Fault Model Configuration - crash or crash
+fault_model crash
 
-# Broadcast Protocol Configuration
+# App Interaction
+app_interaction manual
+
 
 # Static Membership Protocol Configuration
 

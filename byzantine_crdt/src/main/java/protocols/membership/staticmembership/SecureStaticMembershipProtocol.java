@@ -37,7 +37,7 @@ public class SecureStaticMembershipProtocol extends GenericProtocol {
 	public final static String PAR_MYHOST = "membership.myhost";
 	public final static String PAR_NEIGHBORS = "membership.neighbors";
 
-	public final static short PROTO_ID = 200;
+	public final static short PROTO_ID = 201;
 	public final static String PROTO_NAME = "SecureStaticMembershipProtocol";
 
 	private final HashMap<Host, PublicKey> neighbors;

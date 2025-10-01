@@ -1,34 +1,34 @@
-package app.dissemination;
+package app;
 
-import app.dissemination.timers.DisseminationTimer;
-import app.dissemination.timers.ExitTimer;
-import app.dissemination.timers.StartTimer;
-import app.dissemination.timers.StopTimer;
+import java.util.*;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import protocols.broadcast.crashreliablebcast.SignedCrashFaultReliableBroadcastProtocol;
-import protocols.broadcast.notification.DeliveryNotification;
-import protocols.broadcast.request.BroadcastRequest;
-import protocols.common.events.SecureChannelAvailable;
-import protocols.common.events.SecureNeighborUp;
+
+import app.timers.DisseminationTimer;
+import app.timers.ExitTimer;
+import app.timers.StartTimer;
+import app.timers.StopTimer;
+import protocols.common.events.ChannelAvailable;
+import protocols.common.events.NeighborUp;
+import protocols.crdt.AWSet;
+import protocols.crdt.replies.AddReply;
+import protocols.crdt.replies.ReadReply;
+import protocols.crdt.replies.RemoveReply;
+import protocols.crdt.requests.AddRequest;
 import pt.unl.fct.di.novasys.babel.core.GenericProtocol;
 import pt.unl.fct.di.novasys.babel.exceptions.HandlerRegistrationException;
 import pt.unl.fct.di.novasys.network.data.Host;
+import utils.HashProducer;
 
-import java.nio.charset.StandardCharsets;
-import java.security.PrivateKey;
-import java.util.Properties;
-
-/** @author Professor Joao Leitao (from Reliable Distributed Systems 2025 course) **/
-public class SignedAutomatedDisseminationApp extends GenericProtocol {
-    private static final Logger logger = LogManager.getLogger(SignedAutomatedDisseminationApp.class);
+/** @author Ricardo Bessa **/
+public class AutomatedApp extends GenericProtocol {
+    private static final Logger logger = LogManager.getLogger(AutomatedApp.class);
 
     //Protocol debug() Information, to register in babel
-    public static final String PROTO_NAME = "SignedAutomatedApp";
-    public static final short PROTO_ID = 401;
+    public static final String PROTO_NAME = "AutomatedApp";
+    public static final short PROTO_ID = 400;
 
-    //Size of the payload of each message (in bytes)
-    private int payloadSize;
     //Time to wait until starting sending messages
     private int prepareTime;
     //Time to run before shutting down
@@ -37,57 +37,65 @@ public class SignedAutomatedDisseminationApp extends GenericProtocol {
     private int cooldownTime;
     //Interval between each broadcast
     private int disseminationInterval;
-
+    
     private Host self;
 
     private long broadCastTimer;
 
-    private final int messageIndex;
-    private PrivateKey myPrivateKey;
+    private List<String> chat_members;
 
-    public SignedAutomatedDisseminationApp() {
+
+    public AutomatedApp() {
         super(PROTO_NAME, PROTO_ID);
-        messageIndex = 0;
     }
 
     @Override
     public void init(Properties props) throws HandlerRegistrationException {
     	//Read configurations
-        this.payloadSize = Integer.parseInt(props.getProperty("payload_size"));
         this.prepareTime = Integer.parseInt(props.getProperty("prepare_time")); //in seconds
         this.cooldownTime = Integer.parseInt(props.getProperty("cooldown_time")); //in seconds
         this.runTime = Integer.parseInt(props.getProperty("run_time")); //in seconds
         this.disseminationInterval = Integer.parseInt(props.getProperty("broadcast_interval")); //in milliseconds
 
-         
-        //Setup handlers
-        subscribeNotification(DeliveryNotification.NOTIFICATION_ID, this::uponDeliver);
-        
-        subscribeNotification(SecureChannelAvailable.NOTIFICATION_ID, this::uponChannelAvailable);
-        subscribeNotification(SecureNeighborUp.NOTIFICATION_ID, this::uponNeighborUp);
-        
+        this.chat_members = new ArrayList<>();
+        chat_members.addAll(Arrays.asList(ChatMembers.members));
+
+        /* ------------------------------- Subscribe Notifications ----------------------------------- */
+        subscribeNotification(ChannelAvailable.NOTIFICATION_ID, this::uponChannelAvailable);
+        subscribeNotification(NeighborUp.NOTIFICATION_ID, this::uponNeighborUp);
+
+        /* ------------------------------- Register Timers ------------------------------------------- */
         registerTimerHandler(DisseminationTimer.TIMER_ID, this::uponBroadcastTimer);
         registerTimerHandler(StartTimer.TIMER_ID, this::uponStartTimer);
         registerTimerHandler(StopTimer.TIMER_ID, this::uponStopTimer);
         registerTimerHandler(ExitTimer.TIMER_ID, this::uponExitTimer);
-    	
-    	
+
+        /* ------------------------------- Register Reply Handlers ----------------------------------- */
+        registerReplyHandler(AddReply.REPLY_ID, this::handleAddReply);
+        registerReplyHandler(RemoveReply.REPLY_ID, this::handleRemoveReply);
+        registerReplyHandler(ReadReply.REPLY_ID, this::handleReadReply);
+
         //Wait prepareTime seconds before starting
         logger.debug("Waiting...");
     }
 
-    public void uponChannelAvailable(SecureChannelAvailable notification, short protoSource) {
+
+    /* ------------------------------- Notification Handlers ----------------------------------- */
+
+    public void uponChannelAvailable(ChannelAvailable notification, short protoSource) {
     	this.self = notification.getMyHost();
-    	this.myPrivateKey = notification.getMyPrivateKey();
 
         logger.debug("Communication Channel is ready... starting wait time to start broadcasting ({}s)", prepareTime);
     	setupTimer(new StartTimer(), prepareTime * 1000L);
     }
     
-    public void uponNeighborUp(SecureNeighborUp notification, short protoSource) {
+    public void uponNeighborUp(NeighborUp notification, short protoSource) {
         logger.debug("Received NeighborUp notification for: {}", notification.getNeighbor());
     }
-    
+
+
+    /* ------------------------------- Timer Handlers ----------------------------------- */
+
     private void uponStartTimer(StartTimer startTimer, long timerId) {
         logger.debug("Starting Broadcasting Messages... (every {}s)", disseminationInterval / 1000);
         //Start broadcasting periodically
@@ -98,22 +106,9 @@ public class SignedAutomatedDisseminationApp extends GenericProtocol {
     }
 
     private void uponBroadcastTimer(DisseminationTimer broadcastTimer, long timerId) {
-        //Upon triggering the broadcast timer, create a new message
-        String toSend = this.self.toString() + " MSG " + messageIndex + " " + randomCapitalLetters(Math.max(0, payloadSize));
-        //ASCII encodes each character as 1 byte
-        byte[] payload = toSend.getBytes(StandardCharsets.US_ASCII);
-
-        BroadcastRequest request = new BroadcastRequest(self, payload, myPrivateKey);
-        logger.debug("Sending: {} MSG {} ({} bytes total)", self.toString(), messageIndex, payload.length);
-        //And send it to the broadcast protocol
-        sendRequest(request, SignedCrashFaultReliableBroadcastProtocol.PROTO_ID);
-    }
-
-    private void uponDeliver(DeliveryNotification notification, short sourceProto) {
-        //Upon receiving a message, check signature and simply print it
-    	String payload = new String(notification.getPayload(), StandardCharsets.US_ASCII);
-
-    	logger.info("Received: {} ", payload);
+        Collections.shuffle(chat_members);
+        sendRequest(new AddRequest(self, chat_members.get(0)), AWSet.PROTO_ID);
+        chat_members.remove(0);
     }
 
     private void uponStopTimer(StopTimer stopTimer, long timerId) {
@@ -128,8 +123,20 @@ public class SignedAutomatedDisseminationApp extends GenericProtocol {
         logger.debug("Exiting...");
         System.exit(0);
     }
- 
-    public static String randomCapitalLetters(int length) {
-        return AutomatedDisseminationApp.randomCapitalLetters(length);
+
+
+    /* ------------------------------- Reply Handlers ----------------------------------- */
+
+    public void handleAddReply(AddReply reply, short sourceProto) {
+        logger.debug("Successfully added member ({}, {})", reply.getAdd_id(), reply.getElement());
     }
+
+    public void handleRemoveReply(RemoveReply reply, short sourceProto) {
+        logger.debug("Successfully removed member ({}, {})", reply.getAdd_id(), reply.getElement());
+    }
+
+    public void handleReadReply(ReadReply reply, short sourceProto) {
+        logger.debug("Read State with hash {}", HashProducer.hashSet(reply.getState()));
+    }
+
 }

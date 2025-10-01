@@ -1,9 +1,10 @@
 import java.util.Properties;
 
-import app.dissemination.AutomatedDisseminationApp;
-import app.dissemination.SignedAutomatedDisseminationApp;
+import app.InteractiveApp;
+import app.SecureAutomatedApp;
 import protocols.broadcast.crashreliablebcast.CrashFaultReliableBroadcastProtocol;
 import protocols.broadcast.crashreliablebcast.SignedCrashFaultReliableBroadcastProtocol;
+import protocols.crdt.AWSet;
 import protocols.membership.staticmembership.SecureStaticMembershipProtocol;
 import protocols.membership.staticmembership.StaticMembershipProtocol;
 import pt.unl.fct.di.novasys.babel.core.Babel;
@@ -26,28 +27,32 @@ public class Main {
 		try {
 			Babel babel = Babel.getInstance();
 			Properties props = Babel.loadConfig(args, DEFAULT_CONFIG_FILE);
-            GenericProtocol application, bcast, membership;
+            GenericProtocol application, crdt, bcast, membership;
 
             if(props.getProperty(FAULT_MODEL).equals("crash")) {
-                application = new AutomatedDisseminationApp();
+                application = new InteractiveApp();
+                crdt = new AWSet();
                 bcast = new CrashFaultReliableBroadcastProtocol();
                 membership = new StaticMembershipProtocol();
             } else { // BYZANTINE FAULT TOLERANCE
-                application = new SignedAutomatedDisseminationApp();
+                application = new SecureAutomatedApp();
+                crdt = new AWSet();
                 bcast = new SignedCrashFaultReliableBroadcastProtocol();
                 membership = new SecureStaticMembershipProtocol();
             }
 
             babel.registerProtocol(application);
+            babel.registerProtocol(crdt);
             babel.registerProtocol(bcast);
             babel.registerProtocol(membership);
 
             application.init(props);
+            crdt.init(props);
             bcast.init(props);
             membership.init(props);
 
             babel.start();
-            System.out.println("Starting...");
+            System.out.println("Ready...");
 
 		} catch (Exception e) {
 			e.printStackTrace();

@@ -111,7 +111,7 @@ public class StaticMembershipProtocol extends GenericProtocol {
 	}
 
 	private void uponOutConnectionUp(OutConnectionUp event, int channelId) {
-		logger.info("Host (out) {} is up", event.getNode());
+		logger.debug("Host (out) {} is up", event.getNode());
 		this.candidates.remove(event.getNode());
         if(this.neighbors.add(event.getNode()))
             triggerNotification(new NeighborUp(event.getNode()));

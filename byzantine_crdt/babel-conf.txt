@@ -8,6 +8,9 @@ cooldown_time 5
 run_time 500
 broadcast_interval 20000
 
+# Fault Model Configuration - crash or byzantine
+fault_model byzantine
+
 # Broadcast Protocol Configuration
 
 # Static Membership Protocol Configuration

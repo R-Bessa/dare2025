@@ -50,9 +50,12 @@ public class DeliveryNotification extends ProtoNotification {
 		int len = out.readInt();
 		byte[] payload = new byte[len];
 		out.readBytes(payload);
-		len = out.readInt();
-		byte[] sig = new byte[len];
-		out.readBytes(sig);
+        byte[] sig = null;
+        if(out.isReadable()) {
+            len = out.readInt();
+            sig = new byte[len];
+            out.readBytes(sig);
+        }
 		return new DeliveryNotification(h, payload, sig);
 	}
 	

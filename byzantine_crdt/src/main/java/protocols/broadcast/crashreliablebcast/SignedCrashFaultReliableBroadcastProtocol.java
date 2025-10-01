@@ -12,17 +12,17 @@ import org.apache.logging.log4j.Logger;
 
 import protocols.broadcast.notification.DeliveryNotification;
 import protocols.broadcast.request.BroadcastRequest;
-import protocols.broadcast.request.message.BroadcastMessage;
-import protocols.common.events.ChannelAvailable;
+import protocols.broadcast.request.message.SignedBroadcastMessage;
+import protocols.common.events.SecureChannelAvailable;
 import protocols.common.events.NeighborDown;
-import protocols.common.events.NeighborUp;
+import protocols.common.events.SecureNeighborUp;
 import pt.unl.fct.di.novasys.babel.core.GenericProtocol;
 import pt.unl.fct.di.novasys.babel.exceptions.HandlerRegistrationException;
 import pt.unl.fct.di.novasys.network.data.Host;
 /** @author Joao Leitao (from Reliable Distributed Systems 2025 course) **/
-public class SecureCrashFaultReliableBroadcastProtocol extends GenericProtocol {
+public class SignedCrashFaultReliableBroadcastProtocol extends GenericProtocol {
 
-	public static final String PROTO_NAME = "BestEffortBroadcast";
+	public static final String PROTO_NAME = "SignedBestEffortBroadcast";
 	public static final short PROTO_ID = 300;
 	
 	private final HashSet<UUID> delivered;
@@ -33,9 +33,9 @@ public class SecureCrashFaultReliableBroadcastProtocol extends GenericProtocol {
 	private PublicKey myPublicKey;
 	private PrivateKey myPrivateKey;
 
-    private final Logger logger = LogManager.getLogger(SecureCrashFaultReliableBroadcastProtocol.class);
+    private final Logger logger = LogManager.getLogger(SignedCrashFaultReliableBroadcastProtocol.class);
 	
-	public SecureCrashFaultReliableBroadcastProtocol() {
+	public SignedCrashFaultReliableBroadcastProtocol() {
 		super(PROTO_NAME, PROTO_ID);
 		
 		delivered = new HashSet<>();
@@ -50,14 +50,14 @@ public class SecureCrashFaultReliableBroadcastProtocol extends GenericProtocol {
 	@Override
 	public void init(Properties props) throws HandlerRegistrationException {
 		
-		subscribeNotification(ChannelAvailable.NOTIFICATION_ID, this::handleChannelAvailableNotification);
-		subscribeNotification(NeighborUp.NOTIFICATION_ID, this::uponNeighborUpNotification);
+		subscribeNotification(SecureChannelAvailable.NOTIFICATION_ID, this::handleChannelAvailableNotification);
+		subscribeNotification(SecureNeighborUp.NOTIFICATION_ID, this::uponNeighborUpNotification);
 		subscribeNotification(NeighborDown.NOTIFICATION_ID, this::uponNeighborDownNotification);
 		
 		registerRequestHandler(BroadcastRequest.REQUEST_ID, this::handleBroadcastRequest);
 	}
 	
-	public void handleChannelAvailableNotification(ChannelAvailable notification, short sourceProto) {
+	public void handleChannelAvailableNotification(SecureChannelAvailable notification, short sourceProto) {
 		this.mySelf = notification.getMyHost();
 		this.myPublicKey = notification.getMyPublicKey();
 		this.myPrivateKey = notification.getMyPrivateKey();
@@ -70,11 +70,11 @@ public class SecureCrashFaultReliableBroadcastProtocol extends GenericProtocol {
 		setDefaultChannel(channelID);
 		
 		//Register Message Serializers
-		registerMessageSerializer(channelID, BroadcastMessage.MESSAGE_ID, BroadcastMessage.serializer);
+		registerMessageSerializer(channelID, SignedBroadcastMessage.MESSAGE_ID, SignedBroadcastMessage.serializer);
 		
 		//Setup Message Handlers
 		try {
-			registerMessageHandler(channelID, BroadcastMessage.MESSAGE_ID, this::uponReceiveBroadcastMessage);
+			registerMessageHandler(channelID, SignedBroadcastMessage.MESSAGE_ID, this::uponReceiveBroadcastMessage);
 		} catch (HandlerRegistrationException e) {
 			//This should never happen
 			e.printStackTrace();
@@ -84,7 +84,7 @@ public class SecureCrashFaultReliableBroadcastProtocol extends GenericProtocol {
 	public void handleBroadcastRequest(BroadcastRequest req, short sourceProto) {
 		
 		try {
-			BroadcastMessage bm = new BroadcastMessage(mySelf, req.encode());
+			SignedBroadcastMessage bm = new SignedBroadcastMessage(mySelf, req.encode());
 			bm.signMessage(myPrivateKey);
 			for(Host h: neighbors) {
 				sendMessage(bm, h);
@@ -98,7 +98,7 @@ public class SecureCrashFaultReliableBroadcastProtocol extends GenericProtocol {
 		}
 	}
 	
-	public void uponReceiveBroadcastMessage(BroadcastMessage msg, Host sender, short protoID, int channel) {
+	public void uponReceiveBroadcastMessage(SignedBroadcastMessage msg, Host sender, short protoID, int channel) {
 		if(deliverMessage(msg, sender)) {
 			//This is the first time I see this message and as such I will send it to everyone
 			msg.setSender(mySelf);
@@ -115,10 +115,10 @@ public class SecureCrashFaultReliableBroadcastProtocol extends GenericProtocol {
 		}
 	}
 	
-	private boolean deliverMessage(BroadcastMessage msg, Host sender) {
+	private boolean deliverMessage(SignedBroadcastMessage msg, Host sender) {
 		if(this.publicKeys.containsKey(msg.getSender())) {
 			try {
-				if(msg.checkSignature(this.publicKeys.get(msg.getSender()))) {
+				if(sender.equals(msg.getSender()) && msg.checkSignature(this.publicKeys.get(msg.getSender()))) {
 					if(!this.delivered.contains(msg.getMessageID())) {
 						this.delivered.add(msg.getMessageID());
 						triggerNotification(DeliveryNotification.fromMessage(msg.getPayload()));
@@ -135,7 +135,7 @@ public class SecureCrashFaultReliableBroadcastProtocol extends GenericProtocol {
 		return false;
 	}
 	
-	public void uponNeighborUpNotification(NeighborUp notification, short sourceProtoID) {
+	public void uponNeighborUpNotification(SecureNeighborUp notification, short sourceProtoID) {
         logger.debug("Received NeighborUp notification for: {}", notification.getNeighbor());
 		this.neighbors.add(notification.getNeighbor());
 		this.publicKeys.put(notification.getNeighbor(), notification.getPublicKey());

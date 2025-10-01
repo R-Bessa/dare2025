@@ -1,26 +1,23 @@
 package protocols.common.events;
 
-import java.security.PrivateKey;
-import java.security.PublicKey;
-
 import pt.unl.fct.di.novasys.babel.generic.ProtoNotification;
 import pt.unl.fct.di.novasys.network.data.Host;
 
+import java.security.PrivateKey;
+import java.security.PublicKey;
+
 public class ChannelAvailable extends ProtoNotification {
 
-	public static final short NOTIFICATION_ID = 103;
+	public static final short NOTIFICATION_ID = 104;
 
     private final int channelID;
 	private final Host myHost;
-	private final PrivateKey myPrivateKey;
-	private final PublicKey myPublicKey;
-	
-	public ChannelAvailable(int chID, Host myHost, PrivateKey key, PublicKey pKey) {
+
+
+	public ChannelAvailable(int chID, Host myHost) {
 		super(NOTIFICATION_ID);
 		this.channelID = chID;
         this.myHost = myHost;
-		this.myPrivateKey = key;
-		this.myPublicKey = pKey;
 	}
 
     public int getChannelID() {
@@ -31,11 +28,4 @@ public class ChannelAvailable extends ProtoNotification {
 		return this.myHost;
 	}
 
-	public PrivateKey getMyPrivateKey() {
-		return this.myPrivateKey;
-	}
-	
-	public PublicKey getMyPublicKey() {
-		return this.myPublicKey;
-	}
 }

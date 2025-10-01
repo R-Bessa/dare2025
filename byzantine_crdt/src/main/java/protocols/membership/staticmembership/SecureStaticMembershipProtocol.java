@@ -15,8 +15,8 @@ import java.util.Random;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import protocols.common.events.ChannelAvailable;
-import protocols.common.events.NeighborUp;
+import protocols.common.events.SecureChannelAvailable;
+import protocols.common.events.SecureNeighborUp;
 import protocols.membership.staticmembership.messages.HelloMessage;
 import protocols.membership.staticmembership.messages.HelloReplyMessage;
 import protocols.membership.staticmembership.messages.ReplyMessage;
@@ -38,7 +38,7 @@ public class SecureStaticMembershipProtocol extends GenericProtocol {
 	public final static String PAR_NEIGHBORS = "membership.neighbors";
 
 	public final static short PROTO_ID = 200;
-	public final static String PROTO_NAME = "StaticMembershipProtocol";
+	public final static String PROTO_NAME = "SecureStaticMembershipProtocol";
 
 	private final HashMap<Host, PublicKey> neighbors;
 	private final HashSet<Host> candidates;
@@ -147,7 +147,7 @@ public class SecureStaticMembershipProtocol extends GenericProtocol {
 			System.exit(1);
 		}
 		
-		triggerNotification(new ChannelAvailable(channelID, myself, privateKey, publicKey));
+		triggerNotification(new SecureChannelAvailable(channelID, myself, privateKey, publicKey));
 	}
 
 
@@ -230,7 +230,7 @@ public class SecureStaticMembershipProtocol extends GenericProtocol {
 				this.candidates.remove(msg.getSender());
 				this.neighbors.put(msg.getSender(), msg.getPubKey());
 				this.publicKeys.put(msg.getSender(), msg.getPubKey());
-				triggerNotification(new NeighborUp(msg.getSender(), this.neighbors.get(msg.getSender())));
+				triggerNotification(new SecureNeighborUp(msg.getSender(), this.neighbors.get(msg.getSender())));
 			} else {
                 logger.error("Challenge was incorrectly answered by {}", msg.getSender());
 				closeConnection(msg.getSender());
@@ -296,7 +296,7 @@ public class SecureStaticMembershipProtocol extends GenericProtocol {
 				issuedChallenges.remove(msg.getSender());
 				this.candidates.remove(msg.getSender());
 				this.neighbors.put(msg.getSender(), publicKeys.get(msg.getSender()));
-				triggerNotification(new NeighborUp(msg.getSender(), this.neighbors.get(msg.getSender())));
+				triggerNotification(new SecureNeighborUp(msg.getSender(), this.neighbors.get(msg.getSender())));
 			} else {
                 logger.error("Challenge was incorrectly answered by {}", msg.getSender());
 				closeConnection(msg.getSender());

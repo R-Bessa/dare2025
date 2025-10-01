@@ -22,18 +22,10 @@ public class BroadcastRequest extends ProtoRequest {
 		super(REQUEST_ID);
 		this.sender = sender;
 		this.payload = payload;
-		this.signature = null;
+        this.signature = null;
 	}
 	
-	public BroadcastRequest(Host sender, byte[] payload, PrivateKey key, String algorithm) {
-		this(sender, payload);
-		try {
-			generateSignature(key, algorithm);
-		} catch (Exception e) {
-			e.printStackTrace(); 
-		}
-	}
-	
+
 	public BroadcastRequest(Host sender, byte[] payload, PrivateKey key) {
 		this(sender, payload);
 		try {
@@ -56,8 +48,11 @@ public class BroadcastRequest extends ProtoRequest {
 		Host.serializer.serialize(sender, buffer);
 		buffer.writeInt(payload.length);
 		buffer.writeBytes(payload);
-		buffer.writeInt(signature.length);
-		buffer.writeBytes(signature);
+
+        if(signature != null) {
+            buffer.writeInt(signature.length);
+            buffer.writeBytes(signature);
+        }
 		byte[] result = new byte[buffer.readableBytes()];
 		buffer.resetReaderIndex();
 		buffer.readBytes(result);

@@ -1,32 +1,35 @@
 package app.dissemination;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Properties;
-import java.util.Random;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import app.dissemination.timers.DisseminationTimer;
 import app.dissemination.timers.ExitTimer;
 import app.dissemination.timers.StartTimer;
 import app.dissemination.timers.StopTimer;
-import protocols.broadcast.crashreliablebcast.CrashFaultReliableBroadcastProtocol;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import protocols.broadcast.crashreliablebcast.SignedCrashFaultReliableBroadcastProtocol;
 import protocols.broadcast.notification.DeliveryNotification;
 import protocols.broadcast.request.BroadcastRequest;
-import protocols.common.events.ChannelAvailable;
-import protocols.common.events.NeighborUp;
+import protocols.common.events.SecureChannelAvailable;
+import protocols.common.events.SecureNeighborUp;
 import pt.unl.fct.di.novasys.babel.core.GenericProtocol;
 import pt.unl.fct.di.novasys.babel.exceptions.HandlerRegistrationException;
 import pt.unl.fct.di.novasys.network.data.Host;
+import utils.SignaturesHelper;
+
+import java.nio.charset.StandardCharsets;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.util.HashMap;
+import java.util.Properties;
+import java.util.Random;
 
 /** @author Professor Joao Leitao (from Reliable Distributed Systems 2025 course) **/
-public class AutomatedDisseminationApp extends GenericProtocol {
-    private static final Logger logger = LogManager.getLogger(AutomatedDisseminationApp.class);
+public class SignedAutomatedDisseminationApp extends GenericProtocol {
+    private static final Logger logger = LogManager.getLogger(SignedAutomatedDisseminationApp.class);
 
     //Protocol debug() Information, to register in babel
-    public static final String PROTO_NAME = "AutomatedApp";
-    public static final short PROTO_ID = 400;
+    public static final String PROTO_NAME = "SignedAutomatedApp";
+    public static final short PROTO_ID = 401;
 
     //Size of the payload of each message (in bytes)
     private int payloadSize;
@@ -38,17 +41,19 @@ public class AutomatedDisseminationApp extends GenericProtocol {
     private int cooldownTime;
     //Interval between each broadcast
     private int disseminationInterval;
-    
+
     private Host self;
 
     private long broadCastTimer;
-    
+
     private final int messageIndex;
+    private final HashMap<Host, PublicKey> publicKeys;
+    private PrivateKey myPrivateKey;
 
-
-    public AutomatedDisseminationApp() {
+    public SignedAutomatedDisseminationApp() {
         super(PROTO_NAME, PROTO_ID);
         messageIndex = 0;
+        this.publicKeys = new HashMap<>();
     }
 
     @Override
@@ -64,8 +69,8 @@ public class AutomatedDisseminationApp extends GenericProtocol {
         //Setup handlers
         subscribeNotification(DeliveryNotification.NOTIFICATION_ID, this::uponDeliver);
         
-        subscribeNotification(ChannelAvailable.NOTIFICATION_ID, this::uponChannelAvailable);
-        subscribeNotification(NeighborUp.NOTIFICATION_ID, this::uponNeighborUp);
+        subscribeNotification(SecureChannelAvailable.NOTIFICATION_ID, this::uponChannelAvailable);
+        subscribeNotification(SecureNeighborUp.NOTIFICATION_ID, this::uponNeighborUp);
         
         registerTimerHandler(DisseminationTimer.TIMER_ID, this::uponBroadcastTimer);
         registerTimerHandler(StartTimer.TIMER_ID, this::uponStartTimer);
@@ -77,16 +82,18 @@ public class AutomatedDisseminationApp extends GenericProtocol {
         logger.debug("Waiting...");
     }
 
-    public void uponChannelAvailable(ChannelAvailable notification, short protoSource) {
+    public void uponChannelAvailable(SecureChannelAvailable notification, short protoSource) {
     	this.self = notification.getMyHost();
-
+    	this.myPrivateKey = notification.getMyPrivateKey();
+    	this.publicKeys.put(self,notification.getMyPublicKey());
 
         logger.debug("Communication Channel is ready... starting wait time to start broadcasting ({}s)", prepareTime);
     	setupTimer(new StartTimer(), prepareTime * 1000L);
     }
     
-    public void uponNeighborUp(NeighborUp notification, short protoSource) {
+    public void uponNeighborUp(SecureNeighborUp notification, short protoSource) {
         logger.debug("Received NeighborUp notification for: {}", notification.getNeighbor());
+    	this.publicKeys.put(notification.getNeighbor(), notification.getPublicKey());
     }
     
     private void uponStartTimer(StartTimer startTimer, long timerId) {
@@ -104,16 +111,14 @@ public class AutomatedDisseminationApp extends GenericProtocol {
         //ASCII encodes each character as 1 byte
         byte[] payload = toSend.getBytes(StandardCharsets.US_ASCII);
 
-        BroadcastRequest request = new BroadcastRequest(self, payload);
+        BroadcastRequest request = new BroadcastRequest(self, payload, myPrivateKey);
         logger.debug("Sending: {} MSG {} ({} bytes total)", self.toString(), messageIndex, payload.length);
         //And send it to the broadcast protocol
-        sendRequest(request, CrashFaultReliableBroadcastProtocol.PROTO_ID);
+        sendRequest(request, SignedCrashFaultReliableBroadcastProtocol.PROTO_ID);
     }
 
     private void uponDeliver(DeliveryNotification notification, short sourceProto) {
-        //Upon receiving a message, check signature and simply print it
     	String payload = new String(notification.getPayload(), StandardCharsets.US_ASCII);
-    	
     	logger.info("Received: {} ", payload);
     }
 

@@ -1,7 +1,7 @@
 import java.util.Properties;
 
+import app.AutomatedApp;
 import app.InteractiveApp;
-import app.SecureAutomatedApp;
 import protocols.broadcast.crashreliablebcast.CrashFaultReliableBroadcastProtocol;
 import protocols.broadcast.crashreliablebcast.SignedCrashFaultReliableBroadcastProtocol;
 import protocols.crdt.AWSet;
@@ -21,6 +21,7 @@ public class Main {
 	
 	public final static String DEFAULT_CONFIG_FILE = "babel-conf.txt";
     public final static String FAULT_MODEL = "fault_model";
+    public static final String APP_INTERACTION_MODE = "app_interaction";
 	
 	public static void main(String[] args) {
 		
@@ -29,13 +30,16 @@ public class Main {
 			Properties props = Babel.loadConfig(args, DEFAULT_CONFIG_FILE);
             GenericProtocol application, crdt, bcast, membership;
 
-            if(props.getProperty(FAULT_MODEL).equals("crash")) {
+            if(props.getProperty(APP_INTERACTION_MODE).equals("interactive"))
                 application = new InteractiveApp();
+            else application = new AutomatedApp();
+
+            if(props.getProperty(FAULT_MODEL).equals("crash")) {
                 crdt = new AWSet();
                 bcast = new CrashFaultReliableBroadcastProtocol();
                 membership = new StaticMembershipProtocol();
+
             } else { // BYZANTINE FAULT TOLERANCE
-                application = new SecureAutomatedApp();
                 crdt = new AWSet();
                 bcast = new SignedCrashFaultReliableBroadcastProtocol();
                 membership = new SecureStaticMembershipProtocol();

@@ -4,6 +4,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import protocols.common.events.ChannelAvailable;
 import protocols.common.events.NeighborUp;
+import protocols.common.events.SecureChannelAvailable;
 import protocols.crdt.AWSet;
 import protocols.crdt.replies.AddReply;
 import protocols.crdt.replies.ReadReply;
@@ -38,6 +39,7 @@ public class InteractiveApp extends GenericProtocol {
 
         /* ------------------------------- Subscribe Notifications ----------------------------------- */
         subscribeNotification(ChannelAvailable.NOTIFICATION_ID, this::uponChannelAvailable);
+        subscribeNotification(SecureChannelAvailable.NOTIFICATION_ID, this::uponSecureChannelAvailable);
         subscribeNotification(NeighborUp.NOTIFICATION_ID, this::uponNeighborUp);
 
         /* ------------------------------- Register Reply Handlers ----------------------------------- */
@@ -104,7 +106,12 @@ public class InteractiveApp extends GenericProtocol {
     /* ------------------------------- Notification Handlers ----------------------------------- */
 
     public void uponChannelAvailable(ChannelAvailable notification, short protoSource) {
-        logger.debug("Communication Channel is ready.");
+        logger.debug("Communication Channel is ready...");
+        this.self = notification.getMyHost();
+    }
+
+    public void uponSecureChannelAvailable(SecureChannelAvailable notification, short protoSource) {
+        logger.debug("Secure Communication Channel is ready...");
         this.self = notification.getMyHost();
     }
     

@@ -11,6 +11,7 @@ import app.timers.StartTimer;
 import app.timers.StopTimer;
 import protocols.common.events.ChannelAvailable;
 import protocols.common.events.NeighborUp;
+import protocols.common.events.SecureChannelAvailable;
 import protocols.crdt.AWSet;
 import protocols.crdt.replies.AddReply;
 import protocols.crdt.replies.ReadReply;
@@ -62,6 +63,7 @@ public class AutomatedApp extends GenericProtocol {
 
         /* ------------------------------- Subscribe Notifications ----------------------------------- */
         subscribeNotification(ChannelAvailable.NOTIFICATION_ID, this::uponChannelAvailable);
+        subscribeNotification(SecureChannelAvailable.NOTIFICATION_ID, this::uponSecureChannelAvailable);
         subscribeNotification(NeighborUp.NOTIFICATION_ID, this::uponNeighborUp);
 
         /* ------------------------------- Register Timers ------------------------------------------- */
@@ -87,6 +89,13 @@ public class AutomatedApp extends GenericProtocol {
 
         logger.debug("Communication Channel is ready... starting wait time to start broadcasting ({}s)", prepareTime);
     	setupTimer(new StartTimer(), prepareTime * 1000L);
+    }
+
+    public void uponSecureChannelAvailable(SecureChannelAvailable notification, short protoSource) {
+        this.self = notification.getMyHost();
+
+        logger.debug("Secure Communication Channel is ready... starting wait time to start broadcasting ({}s)", prepareTime);
+        setupTimer(new StartTimer(), prepareTime * 1000L);
     }
     
     public void uponNeighborUp(NeighborUp notification, short protoSource) {
@@ -128,15 +137,16 @@ public class AutomatedApp extends GenericProtocol {
     /* ------------------------------- Reply Handlers ----------------------------------- */
 
     public void handleAddReply(AddReply reply, short sourceProto) {
-        logger.debug("Successfully added member ({}, {})", reply.getAdd_id(), reply.getElement());
+        logger.info("Successfully added member: ({}, {})", reply.getAdd_id(), reply.getElement());
     }
 
     public void handleRemoveReply(RemoveReply reply, short sourceProto) {
-        logger.debug("Successfully removed member ({}, {})", reply.getAdd_id(), reply.getElement());
+        logger.info("Successfully removed member: ({}, {})", reply.getAdd_id(), reply.getElement());
     }
 
     public void handleReadReply(ReadReply reply, short sourceProto) {
-        logger.debug("Read State with hash {}", HashProducer.hashSet(reply.getState()));
+        logger.info("Read State: {}", reply.getState());
+        logger.info("State Hash: {}", HashProducer.hashSet(reply.getState()));
     }
 
 }

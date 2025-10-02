@@ -25,16 +25,18 @@ public class AWSet extends GenericProtocol {
 
     public static final String PROTO_NAME = "Add-Wins Set CRDT";
     public static final short PROTO_ID = 500;
+
     public static final String ADD_OP = "add";
     public static final String REMOVE_OP = "remove";
+
     public static final String APP_INTERACTION_MODE = "app_interaction";
-    public static final String MANUAL_APP = "manual";
 
     private final Map<String, Set<UUID>> state;
     private Host mySelf;
 
     private final Logger logger = LogManager.getLogger(protocols.crdt.AWSet.class);
     private short appProtoId;
+
 
         public AWSet() {
             super(PROTO_NAME, PROTO_ID);
@@ -44,7 +46,7 @@ public class AWSet extends GenericProtocol {
 
         @Override
         public void init(Properties props) throws HandlerRegistrationException {
-            if(props.getProperty(APP_INTERACTION_MODE).equals(MANUAL_APP))
+            if(props.getProperty(APP_INTERACTION_MODE).equals("interactive"))
                 appProtoId = InteractiveApp.PROTO_ID;
             else appProtoId = AutomatedApp.PROTO_ID;
 
@@ -54,8 +56,8 @@ public class AWSet extends GenericProtocol {
             registerRequestHandler(ReadRequest.REQUEST_ID, this::handleReadRequest);
 
             /* -------------------- Register Notification Handlers ------------------ */
-            subscribeNotification(ChannelAvailable.NOTIFICATION_ID, this::uponChannelAvailable);
             subscribeNotification(DeliveryNotification.NOTIFICATION_ID, this::uponDeliver);
+            subscribeNotification(ChannelAvailable.NOTIFICATION_ID, this::uponChannelAvailable);
         }
 
 

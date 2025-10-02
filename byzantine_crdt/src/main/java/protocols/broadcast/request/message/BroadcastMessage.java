@@ -6,6 +6,9 @@ import pt.unl.fct.di.novasys.network.ISerializer;
 import pt.unl.fct.di.novasys.network.data.Host;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 public class BroadcastMessage extends ProtoMessage {
@@ -15,20 +18,23 @@ public class BroadcastMessage extends ProtoMessage {
 	private Host sender;
 	private final UUID messageID;
 	private final byte[] payload;
+    private final Map<Host, Integer> version_vector;
 
-	public BroadcastMessage(Host sender, byte[] payload) {
+	public BroadcastMessage(Host sender, byte[] payload, Map<Host, Integer> version_vector) {
 		super(MESSAGE_ID);
 		this.sender = sender;
 		this.messageID = UUID.randomUUID();
 		this.payload = payload;
+        this.version_vector = version_vector;
 	}
 
-	public BroadcastMessage(Host sender, UUID mID, byte[] payload) {
-		super(MESSAGE_ID);
-		this.sender = sender;
-		this.messageID = mID;
-		this.payload = payload;
-	}
+    public BroadcastMessage(Host sender, UUID mID, byte[] payload, Map<Host, Integer> version_vector) {
+        super(MESSAGE_ID);
+        this.sender = sender;
+        this.messageID = mID;
+        this.payload = payload;
+        this.version_vector = version_vector;
+    }
 	
 	public Host getSender() {
 		return this.sender;
@@ -41,8 +47,12 @@ public class BroadcastMessage extends ProtoMessage {
 	public byte[] getPayload() {
 		return this.payload;
 	}
-	
-	public void setSender(Host sender) {
+
+    public Map<Host, Integer> getVersion_vector() {
+        return version_vector;
+    }
+
+    public void setSender(Host sender) {
 		this.sender = sender;
 	}
 
@@ -58,6 +68,12 @@ public class BroadcastMessage extends ProtoMessage {
             } else {
                 out.writeInt(0);
             }
+
+            out.writeInt(msg.version_vector.size());
+            for (Map.Entry<Host, Integer> e : msg.version_vector.entrySet()) {
+                Host.serializer.serialize(e.getKey(), out);
+                out.writeInt(e.getValue());
+            }
         }
 
         @Override
@@ -70,8 +86,28 @@ public class BroadcastMessage extends ProtoMessage {
                 payload = new byte[len];
                 in.readBytes(payload);
             }
-            return new BroadcastMessage(sender, id, payload);
+
+            int vvSize = in.readInt();
+            Map<Host, Integer> vv = new HashMap<>();
+            for (int i = 0; i < vvSize; i++) {
+                Host h = Host.serializer.deserialize(in);
+                int clock = in.readInt();
+                vv.put(h, clock);
+            }
+
+            return new BroadcastMessage(sender, id, payload, vv);
         }
     };
-	
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        BroadcastMessage that = (BroadcastMessage) o;
+        return Objects.equals(messageID, that.messageID);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(messageID);
+    }
 }

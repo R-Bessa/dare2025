@@ -2,7 +2,7 @@ import java.util.Properties;
 
 import app.AutomatedApp;
 import app.InteractiveApp;
-import protocols.broadcast.crashreliablebcast.CrashFaultReliableBroadcastProtocol;
+import protocols.broadcast.crashreliablebcast.CrashReliableCausalBroadcastProtocol;
 import protocols.broadcast.crashreliablebcast.SignedCrashFaultReliableBroadcastProtocol;
 import protocols.crdt.AWSet;
 import protocols.membership.staticmembership.SecureStaticMembershipProtocol;
@@ -36,7 +36,7 @@ public class Main {
 
             if(props.getProperty(FAULT_MODEL).equals("crash")) {
                 crdt = new AWSet();
-                bcast = new CrashFaultReliableBroadcastProtocol();
+                bcast = new CrashReliableCausalBroadcastProtocol();
                 membership = new StaticMembershipProtocol();
 
             } else { // BYZANTINE FAULT TOLERANCE

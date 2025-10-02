@@ -4,7 +4,7 @@ import app.AutomatedApp;
 import app.InteractiveApp;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import protocols.broadcast.crashreliablebcast.CrashFaultReliableBroadcastProtocol;
+import protocols.broadcast.crashreliablebcast.CrashReliableCausalBroadcastProtocol;
 import protocols.broadcast.notification.DeliveryNotification;
 import protocols.broadcast.request.BroadcastRequest;
 import protocols.common.events.ChannelAvailable;
@@ -66,14 +66,14 @@ public class AWSet extends GenericProtocol {
             logger.debug("Received Add Operation: ({},{})", req.getAdd_id(), req.getElement());
             Operation op = new Operation(ADD_OP, req.getAdd_id(), req.getElement());
             BroadcastRequest bcast_req = new BroadcastRequest(mySelf, op.encode());
-            sendRequest(bcast_req, CrashFaultReliableBroadcastProtocol.PROTO_ID);
+            sendRequest(bcast_req, CrashReliableCausalBroadcastProtocol.PROTO_ID);
         }
 
         public void handleRemoveRequest(RemoveRequest req, short sourceProto) {
             logger.debug("Received Remove Operation: ({},{})", req.getAdd_id(), req.getElement());
             Operation op = new Operation(REMOVE_OP, req.getAdd_id(), req.getElement());
             BroadcastRequest bcast_req = new BroadcastRequest(mySelf, op.encode());
-            sendRequest(bcast_req, CrashFaultReliableBroadcastProtocol.PROTO_ID);
+            sendRequest(bcast_req, CrashReliableCausalBroadcastProtocol.PROTO_ID);
         }
 
         public void handleReadRequest(ReadRequest req, short sourceProto) {

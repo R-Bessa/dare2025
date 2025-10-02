@@ -1,7 +1,6 @@
 package protocols.broadcast.crashreliablebcast;
 
-import java.security.PrivateKey;
-import java.security.PublicKey;
+import java.security.*;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Properties;
@@ -101,7 +100,6 @@ public class SignedCrashFaultReliableBroadcastProtocol extends GenericProtocol {
 	public void uponReceiveBroadcastMessage(SignedBroadcastMessage msg, Host sender, short protoID, int channel) {
 		if(deliverMessage(msg, sender)) {
 			//This is the first time I see this message and as such I will send it to everyone
-			msg.setSender(mySelf);
 			try {
 				msg.signMessage(myPrivateKey);
 				for(Host h: this.neighbors) {
@@ -116,23 +114,23 @@ public class SignedCrashFaultReliableBroadcastProtocol extends GenericProtocol {
 	}
 	
 	private boolean deliverMessage(SignedBroadcastMessage msg, Host sender) {
-		if(this.publicKeys.containsKey(msg.getSender())) {
-			try {
-				if(sender.equals(msg.getSender()) && msg.checkSignature(this.publicKeys.get(msg.getSender()))) {
-					if(!this.delivered.contains(msg.getMessageID())) {
-						this.delivered.add(msg.getMessageID());
-						triggerNotification(DeliveryNotification.fromMessage(msg.getPayload()));
-						return true;
-					}
-				}
-			} catch (Exception e) {
-                logger.error("Could not verify authenticity of BroadcastMessage sent by {}", msg.getSender());
-				e.printStackTrace();
-			}
-		} else {
-            logger.warn("I do not know the public key of {} to validate the message.", msg.getSender());
-		}
-		return false;
+        try {
+            if(!this.delivered.contains(msg.getMessageID())) {
+                if (sender.equals(mySelf)) {
+                    this.delivered.add(msg.getMessageID());
+                    triggerNotification(DeliveryNotification.fromMessage(msg.getPayload()));
+                    return true;
+                }
+
+                if (publicKeys.containsKey(sender) && msg.checkSignature(publicKeys.get(sender))) {
+                    triggerNotification(DeliveryNotification.fromMessage(msg.getPayload()));
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
 	}
 	
 	public void uponNeighborUpNotification(SecureNeighborUp notification, short sourceProtoID) {

@@ -18,11 +18,13 @@ import protocols.common.events.SecureNeighborUp;
 import pt.unl.fct.di.novasys.babel.core.GenericProtocol;
 import pt.unl.fct.di.novasys.babel.exceptions.HandlerRegistrationException;
 import pt.unl.fct.di.novasys.network.data.Host;
+import utils.SignaturesHelper;
+
 /** @author Joao Leitao (from Reliable Distributed Systems 2025 course) **/
 public class SignedCrashFaultReliableBroadcastProtocol extends GenericProtocol {
 
 	public static final String PROTO_NAME = "SignedBestEffortBroadcast";
-	public static final short PROTO_ID = 300;
+	public static final short PROTO_ID = 301;
 	
 	private final HashSet<UUID> delivered;
 	private final HashSet<Host> neighbors;
@@ -83,8 +85,10 @@ public class SignedCrashFaultReliableBroadcastProtocol extends GenericProtocol {
 	public void handleBroadcastRequest(BroadcastRequest req, short sourceProto) {
 		
 		try {
-			SignedBroadcastMessage bm = new SignedBroadcastMessage(mySelf, req.encode());
+            byte[] originalSenderSig = SignaturesHelper.generateSignature(req.encode(), myPrivateKey);
+			SignedBroadcastMessage bm = new SignedBroadcastMessage(mySelf, req.encode(), originalSenderSig);
 			bm.signMessage(myPrivateKey);
+
 			for(Host h: neighbors) {
 				sendMessage(bm, h);
 			}
@@ -122,7 +126,12 @@ public class SignedCrashFaultReliableBroadcastProtocol extends GenericProtocol {
                     return true;
                 }
 
-                if (publicKeys.containsKey(sender) && msg.checkSignature(publicKeys.get(sender))) {
+                if (!publicKeys.containsKey(sender) || !publicKeys.containsKey(msg.getOriginalSender())) {
+                    return false;
+                }
+
+                if(msg.checkSignature(publicKeys.get(sender)) && msg.verifyOriginalSignature(publicKeys.get(msg.getOriginalSender()))) {
+                    this.delivered.add(msg.getMessageID());
                     triggerNotification(DeliveryNotification.fromMessage(msg.getPayload()));
                     return true;
                 }

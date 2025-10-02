@@ -13,9 +13,9 @@ import java.util.UUID;
 
 public class BroadcastMessage extends ProtoMessage {
 
-	public final static short MESSAGE_ID = 302;
+	public final static short MESSAGE_ID = 303;
 
-	private Host sender;
+	private final Host sender;
 	private final UUID messageID;
 	private final byte[] payload;
     private final Map<Host, Integer> version_vector;
@@ -51,10 +51,6 @@ public class BroadcastMessage extends ProtoMessage {
     public Map<Host, Integer> getVersion_vector() {
         return version_vector;
     }
-
-    public void setSender(Host sender) {
-		this.sender = sender;
-	}
 
     public static ISerializer<BroadcastMessage> serializer = new ISerializer<>() {
         @Override

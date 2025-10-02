@@ -3,7 +3,7 @@ package app.timers;
 import pt.unl.fct.di.novasys.babel.generic.ProtoTimer;
 
 public class ExitTimer extends ProtoTimer {
-    public static final short TIMER_ID = 404;
+    public static final short TIMER_ID = 403;
 
     public ExitTimer() {
         super(TIMER_ID);

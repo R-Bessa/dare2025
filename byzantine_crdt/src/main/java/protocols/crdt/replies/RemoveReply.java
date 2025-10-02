@@ -7,7 +7,7 @@ import java.util.Set;
 import java.util.UUID;
 
 public class RemoveReply extends ProtoReply {
-    public final static short REPLY_ID = 502;
+    public final static short REPLY_ID = 504;
 
     private final Host sender;
     private final UUID add_id;

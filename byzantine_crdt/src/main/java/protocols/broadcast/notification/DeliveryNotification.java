@@ -11,7 +11,7 @@ import pt.unl.fct.di.novasys.network.data.Host;
 
 public class DeliveryNotification extends ProtoNotification {
 
-	public final static short NOTIFICATION_ID = 301;
+	public final static short NOTIFICATION_ID = 302;
 	
 	private final Host sender;
 	private final byte[] payload;

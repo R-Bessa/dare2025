@@ -7,7 +7,7 @@ import java.util.Set;
 import java.util.UUID;
 
 public class AddReply extends ProtoReply {
-    public final static short REPLY_ID = 501;
+    public final static short REPLY_ID = 502;
 
     private final Host sender;
     private final UUID add_id;

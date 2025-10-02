@@ -3,7 +3,7 @@ package app.timers;
 import pt.unl.fct.di.novasys.babel.generic.ProtoTimer;
 
 public class DisseminationTimer extends ProtoTimer {
-    public static final short TIMER_ID = 401;
+    public static final short TIMER_ID = 402;
 
     public DisseminationTimer() {
         super(TIMER_ID);

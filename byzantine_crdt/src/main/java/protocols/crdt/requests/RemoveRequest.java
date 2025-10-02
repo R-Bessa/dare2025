@@ -6,7 +6,7 @@ import pt.unl.fct.di.novasys.network.data.Host;
 import java.util.UUID;
 
 public class RemoveRequest extends ProtoRequest {
-    public final static short REQUEST_ID = 503;
+    public final static short REQUEST_ID = 507;
 
     private final Host sender;
     private final UUID add_id;

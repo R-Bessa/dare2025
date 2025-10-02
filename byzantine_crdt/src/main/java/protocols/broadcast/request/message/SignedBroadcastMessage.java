@@ -1,37 +1,46 @@
 package protocols.broadcast.request.message;
 
 import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+import java.security.SignatureException;
 import java.util.UUID;
 
 import io.netty.buffer.ByteBuf;
 import pt.unl.fct.di.novasys.babel.generic.signed.SignedMessageSerializer;
 import pt.unl.fct.di.novasys.babel.generic.signed.SignedProtoMessage;
 import pt.unl.fct.di.novasys.network.data.Host;
+import utils.SignaturesHelper;
 
 public class SignedBroadcastMessage extends SignedProtoMessage {
 
-	public final static short MESSAGE_ID = 301;
+	public final static short MESSAGE_ID = 304;
 	
-	private Host sender;
+	private final Host originalSender;
 	private final UUID messageID;
 	private final byte[] payload;
+    private final byte[] originalSignature;
+
+
+    public SignedBroadcastMessage(Host originalSender, byte[] payload, byte[] originalSignature) {
+        super(MESSAGE_ID);
+        this.originalSender = originalSender;
+        this.messageID = UUID.randomUUID();
+        this.payload = payload;
+        this.originalSignature = originalSignature;
+    }
+
+    public SignedBroadcastMessage(Host originalSender, UUID mID, byte[] payload, byte[] originalSignature) {
+        super(MESSAGE_ID);
+        this.originalSender = originalSender;
+        this.messageID = mID;
+        this.payload = payload;
+        this.originalSignature = originalSignature;
+    }
 	
-	public SignedBroadcastMessage(Host sender, byte[] payload) {
-		super(MESSAGE_ID);
-		this.sender = sender;
-		this.messageID = UUID.randomUUID();
-		this.payload = payload;
-	}
-	
-	public SignedBroadcastMessage(Host sender, UUID mID, byte[] payload) {
-		super(MESSAGE_ID);
-		this.sender = sender;
-		this.messageID = mID;
-		this.payload = payload;
-	}
-	
-	public Host getSender() {
-		return this.sender;
+	public Host getOriginalSender() {
+		return this.originalSender;
 	}
 	
 	public UUID getMessageID() {
@@ -41,21 +50,28 @@ public class SignedBroadcastMessage extends SignedProtoMessage {
 	public byte[] getPayload() {
 		return this.payload;
 	}
-	
-	public void setSender(Host sender) {
-		this.sender = sender;
-	}
 
-	public final static SignedMessageSerializer<SignedBroadcastMessage> serializer = new SignedMessageSerializer<>() {
+    public boolean verifyOriginalSignature(PublicKey publicKey) throws SignatureException, NoSuchAlgorithmException, InvalidKeyException {
+        return SignaturesHelper.checkSignature(payload, originalSignature, publicKey);
+    }
+
+    public final static SignedMessageSerializer<SignedBroadcastMessage> serializer = new SignedMessageSerializer<SignedBroadcastMessage>() {
 
         @Override
         public void serializeBody(SignedBroadcastMessage msg, ByteBuf out) throws IOException {
-            Host.serializer.serialize(msg.sender, out);
+            Host.serializer.serialize(msg.originalSender, out);
             out.writeLong(msg.messageID.getMostSignificantBits());
             out.writeLong(msg.messageID.getLeastSignificantBits());
-            if (msg.payload != null) {
+            if(msg.payload != null) {
                 out.writeInt(msg.payload.length);
                 out.writeBytes(msg.payload);
+            } else {
+                out.writeInt(0);
+            }
+
+            if(msg.originalSignature != null) {
+                out.writeInt(msg.originalSignature.length);
+                out.writeBytes(msg.originalSignature);
             } else {
                 out.writeInt(0);
             }
@@ -67,17 +83,24 @@ public class SignedBroadcastMessage extends SignedProtoMessage {
             UUID id = new UUID(in.readLong(), in.readLong());
             byte[] payload = null;
             int len = in.readInt();
-            if (len > 0) {
+            if( len > 0 ) {
                 payload = new byte[len];
                 in.readBytes(payload);
             }
-            return new SignedBroadcastMessage(sender, id, payload);
+
+            byte[] sig = null;
+            int sig_len = in.readInt();
+            if( sig_len > 0 ) {
+                sig = new byte[sig_len];
+                in.readBytes(sig);
+            }
+            return new SignedBroadcastMessage(sender, id, payload, sig);
         }
     };
-	
-	@Override
-	public SignedMessageSerializer<? extends SignedProtoMessage> getSerializer() {
-		return SignedBroadcastMessage.serializer;
-	}
+
+    @Override
+    public SignedMessageSerializer<? extends SignedProtoMessage> getSerializer() {
+        return SignedBroadcastMessage.serializer;
+    }
 	
 }

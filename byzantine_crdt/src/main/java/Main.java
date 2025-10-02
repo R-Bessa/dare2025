@@ -5,6 +5,7 @@ import app.InteractiveApp;
 import protocols.broadcast.crashreliablebcast.CrashReliableCausalBroadcastProtocol;
 import protocols.broadcast.crashreliablebcast.SignedCrashFaultReliableBroadcastProtocol;
 import protocols.crdt.AWSet;
+import protocols.crdt.ByzantineAWSet;
 import protocols.membership.staticmembership.SecureStaticMembershipProtocol;
 import protocols.membership.staticmembership.StaticMembershipProtocol;
 import pt.unl.fct.di.novasys.babel.core.Babel;
@@ -40,7 +41,7 @@ public class Main {
                 membership = new StaticMembershipProtocol();
 
             } else { // BYZANTINE FAULT TOLERANCE
-                crdt = new AWSet();
+                crdt = new ByzantineAWSet();
                 bcast = new SignedCrashFaultReliableBroadcastProtocol();
                 membership = new SecureStaticMembershipProtocol();
             }

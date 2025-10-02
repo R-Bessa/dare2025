@@ -16,7 +16,7 @@ import java.util.*;
 public class CrashReliableCausalBroadcastProtocol extends GenericProtocol {
 
 	public static final String PROTO_NAME = "BestEffortCausalBroadcast";
-	public static final short PROTO_ID = 301;
+	public static final short PROTO_ID = 300;
 
 	private final HashSet<UUID> delivered;
 	private final HashSet<Host> neighbors;
@@ -24,7 +24,8 @@ public class CrashReliableCausalBroadcastProtocol extends GenericProtocol {
     private final HashSet<BroadcastMessage> pending_msgs;
 	private Host mySelf;
 
-
+    //TODO test causality
+    //TODO byzantine_rep flag, test/screenshot equivocation, causality attack (send wrong vv) and impersonation
     private final Logger logger = LogManager.getLogger(CrashReliableCausalBroadcastProtocol.class);
 
 	public CrashReliableCausalBroadcastProtocol() {

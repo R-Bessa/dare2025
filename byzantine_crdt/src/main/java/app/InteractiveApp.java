@@ -6,6 +6,7 @@ import protocols.common.events.ChannelAvailable;
 import protocols.common.events.NeighborUp;
 import protocols.common.events.SecureChannelAvailable;
 import protocols.crdt.AWSet;
+import protocols.crdt.ByzantineAWSet;
 import protocols.crdt.replies.AddReply;
 import protocols.crdt.replies.ReadReply;
 import protocols.crdt.replies.RemoveReply;
@@ -25,9 +26,11 @@ public class InteractiveApp extends GenericProtocol {
 
     //Protocol debug() Information, to register in babel
     public static final String PROTO_NAME = "InteractiveApp";
-    public static final short PROTO_ID = 402;
+    public static final short PROTO_ID = 401;
+    public final static String FAULT_MODEL = "fault_model";
 
     private Host self;
+    private short crdtProtoId;
 
 
     public InteractiveApp() {
@@ -47,6 +50,10 @@ public class InteractiveApp extends GenericProtocol {
         registerReplyHandler(RemoveReply.REPLY_ID, this::handleRemoveReply);
         registerReplyHandler(ReadReply.REPLY_ID, this::handleReadReply);
 
+        if(props.getProperty(FAULT_MODEL).equals("crash"))
+            crdtProtoId = AWSet.PROTO_ID;
+        else crdtProtoId = ByzantineAWSet.PROTO_ID;
+
         Thread interactiveThread = new Thread(() -> {
             String line;
             String[] components;
@@ -61,7 +68,7 @@ public class InteractiveApp extends GenericProtocol {
                         if(components.length != 2) {
                             logger.error("Usage: add <member_name>");
                         } else {
-                            sendRequest(new AddRequest(self, components[1]), AWSet.PROTO_ID);
+                            sendRequest(new AddRequest(self, components[1]), crdtProtoId);
                         }
                         break;
                     case "remove":
@@ -69,7 +76,7 @@ public class InteractiveApp extends GenericProtocol {
                             logger.error("Usage: remove <member_name> <add_id>");
                         } else {
                             try {
-                                sendRequest(new RemoveRequest(self, components[1], UUID.fromString(components[2])), AWSet.PROTO_ID);
+                                sendRequest(new RemoveRequest(self, components[1], UUID.fromString(components[2])), crdtProtoId);
                             } catch (Exception e) {logger.error("Invalid UUID");}
                         }
                         break;
@@ -77,7 +84,7 @@ public class InteractiveApp extends GenericProtocol {
                         if(components.length != 1) {
                             logger.error("Usage: read");
                         } else {
-                            sendRequest(new ReadRequest(self), AWSet.PROTO_ID);
+                            sendRequest(new ReadRequest(self), crdtProtoId);
                         }
                         break;
                     case "exit":

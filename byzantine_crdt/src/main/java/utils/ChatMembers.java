@@ -1,4 +1,4 @@
-package app;
+package utils;
 
 public class ChatMembers {
     public static String[] members = {

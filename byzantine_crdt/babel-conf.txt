@@ -9,7 +9,7 @@ run_time 500
 broadcast_interval 20000
 
 # Fault Model Configuration - crash or byzantine
-fault_model byzantine
+fault_model crash
 
 # Byzantine Replica Behavior - none, causality attack, equivocation or impersonation
 byzantine equivocation

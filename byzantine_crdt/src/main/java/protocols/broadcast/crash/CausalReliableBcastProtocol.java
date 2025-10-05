@@ -27,10 +27,7 @@ public class CausalReliableBcastProtocol extends GenericProtocol {
     private final HashSet<BroadcastMessage> pending;
 	private Host mySelf;
 
-    //TODO test causality
     //TODO byzantine_rep flag, test/screenshot equivocation, causality attack (send wrong vv) and impersonation
-    //TODO remove authors, improve crdt automatic remove
-
 
 	public CausalReliableBcastProtocol() {
 		super(PROTO_NAME, PROTO_ID);
@@ -102,11 +99,11 @@ public class CausalReliableBcastProtocol extends GenericProtocol {
             int curr = version_vector.getOrDefault(mySelf, 0);
             version_vector.put(mySelf, curr + 1);
 
-            BroadcastMessage bm = new BroadcastMessage(mySelf, req.encode(), version_vector);
+            BroadcastMessage bm = new BroadcastMessage(mySelf, req.encode(), new HashMap<>(version_vector));
             for (Host h : neighbors)
                 sendMessage(bm, h);
 
-            deliverMessage(bm, mySelf);
+            deliverMessage(bm);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -117,7 +114,7 @@ public class CausalReliableBcastProtocol extends GenericProtocol {
     /* ------------------------------------- Message Handlers ------------------------------------- */
 
 	public void uponReceiveBroadcastMessage(BroadcastMessage msg, Host sender, short protoID, int channel) {
-		if(deliverMessage(msg, msg.getSender())) {
+		if(deliverMessage(msg)) {
             for(Host h: this.neighbors)
                 sendMessage(msg, h);
 		}
@@ -126,10 +123,10 @@ public class CausalReliableBcastProtocol extends GenericProtocol {
 
     /* ------------------------------------- Procedures ----------------------------------------- */
 
-	private boolean deliverMessage(BroadcastMessage msg, Host sender) {
+	private boolean deliverMessage(BroadcastMessage msg) {
         try {
             if (!this.delivered.contains(msg.getMessageID())) {
-                if(msg.getSender().equals(sender)) {
+                if(msg.getSender().equals(mySelf)) {
                     this.delivered.add(msg.getMessageID());
                     triggerNotification(DeliveryNotification.fromMessage(msg.getPayload()));
                     return true;

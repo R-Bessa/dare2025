@@ -1,4 +1,4 @@
-package protocols.membership.staticmembership;
+package protocols.membership;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -15,11 +15,11 @@ import java.util.Random;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import protocols.common.events.SecureChannelAvailable;
-import protocols.common.events.SecureNeighborUp;
-import protocols.membership.staticmembership.messages.HelloMessage;
-import protocols.membership.staticmembership.messages.HelloReplyMessage;
-import protocols.membership.staticmembership.messages.ReplyMessage;
+import protocols.events.SecureChannelAvailable;
+import protocols.events.SecureNeighborUp;
+import protocols.membership.messages.HelloMessage;
+import protocols.membership.messages.HelloReplyMessage;
+import protocols.membership.messages.ReplyMessage;
 import pt.unl.fct.di.novasys.babel.core.GenericProtocol;
 import pt.unl.fct.di.novasys.babel.exceptions.HandlerRegistrationException;
 import pt.unl.fct.di.novasys.channel.tcp.TCPChannel;

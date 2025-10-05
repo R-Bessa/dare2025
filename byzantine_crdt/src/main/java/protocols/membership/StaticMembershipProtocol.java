@@ -1,10 +1,10 @@
-package protocols.membership.staticmembership;
+package protocols.membership;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import protocols.common.events.ChannelAvailable;
-import protocols.common.events.NeighborDown;
-import protocols.common.events.NeighborUp;
+import protocols.events.ChannelAvailable;
+import protocols.events.NeighborDown;
+import protocols.events.NeighborUp;
 import pt.unl.fct.di.novasys.babel.core.GenericProtocol;
 import pt.unl.fct.di.novasys.babel.exceptions.HandlerRegistrationException;
 import pt.unl.fct.di.novasys.channel.tcp.TCPChannel;
@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.util.*;
 
-/** @author Ricardo Bessa **/
 public class StaticMembershipProtocol extends GenericProtocol {
 
 	public final static String PAR_MYHOST = "membership.myhost";

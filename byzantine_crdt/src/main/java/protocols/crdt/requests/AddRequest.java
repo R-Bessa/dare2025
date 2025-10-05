@@ -6,7 +6,7 @@ import pt.unl.fct.di.novasys.network.data.Host;
 import java.util.UUID;
 
 public class AddRequest extends ProtoRequest {
-    public final static short REQUEST_ID = 505;
+    public final static short REQUEST_ID = 502;
 
     private final Host sender;
     private final UUID add_id;

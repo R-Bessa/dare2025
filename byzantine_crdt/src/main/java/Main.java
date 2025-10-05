@@ -2,12 +2,12 @@ import java.util.Properties;
 
 import app.AutomatedApp;
 import app.InteractiveApp;
-import protocols.broadcast.crashreliablebcast.CrashReliableCausalBroadcastProtocol;
-import protocols.broadcast.crashreliablebcast.SignedCrashFaultReliableBroadcastProtocol;
-import protocols.crdt.AWSet;
-import protocols.crdt.ByzantineAWSet;
-import protocols.membership.staticmembership.SecureStaticMembershipProtocol;
-import protocols.membership.staticmembership.StaticMembershipProtocol;
+import protocols.broadcast.crash.CausalReliableBcastProtocol;
+import protocols.broadcast.crash.SignedReliableBcastProtocol;
+import protocols.crdt.ORSet;
+import protocols.crdt.ByzantineORSet;
+import protocols.membership.SecureStaticMembershipProtocol;
+import protocols.membership.StaticMembershipProtocol;
 import pt.unl.fct.di.novasys.babel.core.Babel;
 import pt.unl.fct.di.novasys.babel.core.GenericProtocol;
 
@@ -36,13 +36,13 @@ public class Main {
             else application = new AutomatedApp();
 
             if(props.getProperty(FAULT_MODEL).equals("crash")) {
-                crdt = new AWSet();
-                bcast = new CrashReliableCausalBroadcastProtocol();
+                crdt = new ORSet();
+                bcast = new CausalReliableBcastProtocol();
                 membership = new StaticMembershipProtocol();
 
             } else { // BYZANTINE FAULT TOLERANCE
-                crdt = new ByzantineAWSet();
-                bcast = new SignedCrashFaultReliableBroadcastProtocol();
+                crdt = new ByzantineORSet();
+                bcast = new SignedReliableBcastProtocol();
                 membership = new SecureStaticMembershipProtocol();
             }
 

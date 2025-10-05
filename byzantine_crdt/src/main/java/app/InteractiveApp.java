@@ -2,11 +2,11 @@ package app;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import protocols.common.events.ChannelAvailable;
-import protocols.common.events.NeighborUp;
-import protocols.common.events.SecureChannelAvailable;
-import protocols.crdt.AWSet;
-import protocols.crdt.ByzantineAWSet;
+import protocols.events.ChannelAvailable;
+import protocols.events.NeighborUp;
+import protocols.events.SecureChannelAvailable;
+import protocols.crdt.ORSet;
+import protocols.crdt.ByzantineORSet;
 import protocols.crdt.replies.AddReply;
 import protocols.crdt.replies.ReadReply;
 import protocols.crdt.replies.RemoveReply;
@@ -20,14 +20,26 @@ import utils.HashProducer;
 
 import java.util.*;
 
-/** @author Ricardo Bessa **/
 public class InteractiveApp extends GenericProtocol {
     private static final Logger logger = LogManager.getLogger(InteractiveApp.class);
 
-    //Protocol debug() Information, to register in babel
     public static final String PROTO_NAME = "InteractiveApp";
     public static final short PROTO_ID = 401;
-    public final static String FAULT_MODEL = "fault_model";
+
+    public static final String FAULT_MODEL = "fault_model";
+
+    public static final String COMMANDS_HELPER = "Commands:";
+    public final static String ADD_OP = "add";
+    public final static String ADD_OP_USAGE = "Usage: add <value>";
+    public final static String REMOVE_OP = "remove";
+    public final static String REMOVE_OP_USAGE = "Usage: remove <value> <add_id>";
+    public final static String READ_OP = "read";
+    public final static String READ_OP_USAGE = "Usage: read";
+    public final static String EXIT = "exit";
+    public final static String EXIT_USAGE = "Usage: exit";
+    public final static String HELP = "help";
+
+    public final static String INVALID_UUID = "Invalid UUID";
 
     private Host self;
     private short crdtProtoId;
@@ -40,6 +52,8 @@ public class InteractiveApp extends GenericProtocol {
     @Override
     public void init(Properties props) throws HandlerRegistrationException {
 
+        crdtProtoId = props.getProperty(FAULT_MODEL).equals("crash") ? ORSet.PROTO_ID : ByzantineORSet.PROTO_ID;
+
         /* ------------------------------- Subscribe Notifications ----------------------------------- */
         subscribeNotification(ChannelAvailable.NOTIFICATION_ID, this::uponChannelAvailable);
         subscribeNotification(SecureChannelAvailable.NOTIFICATION_ID, this::uponSecureChannelAvailable);
@@ -50,10 +64,6 @@ public class InteractiveApp extends GenericProtocol {
         registerReplyHandler(RemoveReply.REPLY_ID, this::handleRemoveReply);
         registerReplyHandler(ReadReply.REPLY_ID, this::handleReadReply);
 
-        if(props.getProperty(FAULT_MODEL).equals("crash"))
-            crdtProtoId = AWSet.PROTO_ID;
-        else crdtProtoId = ByzantineAWSet.PROTO_ID;
-
         Thread interactiveThread = new Thread(() -> {
             String line;
             String[] components;
@@ -63,51 +73,58 @@ public class InteractiveApp extends GenericProtocol {
                 System.out.flush();
                 line = sc.nextLine();
                 components = line.split(" ");
+
                 switch(components[0]) {
-                    case "add":
-                        if(components.length != 2) {
-                            logger.error("Usage: add <member_name>");
-                        } else {
+                    case ADD_OP:
+                        if(components.length != 2)
+                            logger.error(ADD_OP_USAGE);
+                        else
                             sendRequest(new AddRequest(self, components[1]), crdtProtoId);
-                        }
                         break;
-                    case "remove":
-                        if(components.length != 3) {
-                            logger.error("Usage: remove <member_name> <add_id>");
-                        } else {
+
+                    case REMOVE_OP:
+                        if(components.length != 3)
+                            logger.error(REMOVE_OP_USAGE);
+                        else {
                             try {
-                                sendRequest(new RemoveRequest(self, components[1], UUID.fromString(components[2])), crdtProtoId);
-                            } catch (Exception e) {logger.error("Invalid UUID");}
+                                RemoveRequest req = new RemoveRequest(self, components[1], UUID.fromString(components[2]));
+                                sendRequest(req, crdtProtoId);
+                            } catch (Exception e) {
+                                logger.error(INVALID_UUID);
+                            }
                         }
                         break;
-                    case "read":
-                        if(components.length != 1) {
-                            logger.error("Usage: read");
-                        } else {
+
+                    case READ_OP:
+                        if(components.length != 1)
+                            logger.error(READ_OP_USAGE);
+                        else
                             sendRequest(new ReadRequest(self), crdtProtoId);
-                        }
                         break;
-                    case "exit":
-                        if(components.length != 1) {
-                            logger.error("Usage: exit");
-                        } else {
+
+                    case EXIT:
+                        if(components.length != 1)
+                            logger.error(EXIT_USAGE);
+                        else {
                             sc.close();
                             System.exit(0);
                         }
                         break;
-                    case "help":
+
+                    case HELP:
                     default:
-                        logger.error("Commands:");
-                        logger.error("add <member_name>");
-                        logger.error("remove <add_id>");
-                        logger.error("read");
-                        logger.error("exit");
+                        logger.error(COMMANDS_HELPER);
+                        logger.error(ADD_OP_USAGE);
+                        logger.error(READ_OP_USAGE);
+                        logger.error(READ_OP_USAGE);
+                        logger.error(EXIT_USAGE);
                         break;
                 }
             }
         });
         interactiveThread.start();
     }
+
 
 
     /* ------------------------------- Notification Handlers ----------------------------------- */

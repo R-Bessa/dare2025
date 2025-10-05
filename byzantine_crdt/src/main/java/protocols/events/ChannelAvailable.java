@@ -1,4 +1,4 @@
-package protocols.common.events;
+package protocols.events;
 
 import pt.unl.fct.di.novasys.babel.generic.ProtoNotification;
 import pt.unl.fct.di.novasys.network.data.Host;

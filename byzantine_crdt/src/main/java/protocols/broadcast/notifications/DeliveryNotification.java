@@ -1,4 +1,4 @@
-package protocols.broadcast.notification;
+package protocols.broadcast.notifications;
 
 import java.io.IOException;
 import java.security.PublicKey;

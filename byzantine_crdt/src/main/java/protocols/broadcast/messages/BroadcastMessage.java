@@ -1,4 +1,4 @@
-package protocols.broadcast.request.message;
+package protocols.broadcast.messages;
 
 import io.netty.buffer.ByteBuf;
 import pt.unl.fct.di.novasys.babel.generic.ProtoMessage;
@@ -13,7 +13,7 @@ import java.util.UUID;
 
 public class BroadcastMessage extends ProtoMessage {
 
-	public final static short MESSAGE_ID = 303;
+	public final static short MESSAGE_ID = 302;
 
 	private final Host sender;
 	private final UUID messageID;

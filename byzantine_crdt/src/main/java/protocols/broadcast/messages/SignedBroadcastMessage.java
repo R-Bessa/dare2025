@@ -1,4 +1,4 @@
-package protocols.broadcast.request.message;
+package protocols.broadcast.messages;
 
 import java.io.IOException;
 import java.security.InvalidKeyException;
@@ -15,7 +15,7 @@ import utils.SignaturesHelper;
 
 public class SignedBroadcastMessage extends SignedProtoMessage {
 
-	public final static short MESSAGE_ID = 304;
+	public final static short MESSAGE_ID = 303;
 	
 	private final Host originalSender;
 	private final UUID messageID;
@@ -55,21 +55,21 @@ public class SignedBroadcastMessage extends SignedProtoMessage {
         return SignaturesHelper.checkSignature(payload, originalSignature, publicKey);
     }
 
-    public final static SignedMessageSerializer<SignedBroadcastMessage> serializer = new SignedMessageSerializer<SignedBroadcastMessage>() {
+    public final static SignedMessageSerializer<SignedBroadcastMessage> serializer = new SignedMessageSerializer<>() {
 
         @Override
         public void serializeBody(SignedBroadcastMessage msg, ByteBuf out) throws IOException {
             Host.serializer.serialize(msg.originalSender, out);
             out.writeLong(msg.messageID.getMostSignificantBits());
             out.writeLong(msg.messageID.getLeastSignificantBits());
-            if(msg.payload != null) {
+            if (msg.payload != null) {
                 out.writeInt(msg.payload.length);
                 out.writeBytes(msg.payload);
             } else {
                 out.writeInt(0);
             }
 
-            if(msg.originalSignature != null) {
+            if (msg.originalSignature != null) {
                 out.writeInt(msg.originalSignature.length);
                 out.writeBytes(msg.originalSignature);
             } else {
@@ -83,14 +83,14 @@ public class SignedBroadcastMessage extends SignedProtoMessage {
             UUID id = new UUID(in.readLong(), in.readLong());
             byte[] payload = null;
             int len = in.readInt();
-            if( len > 0 ) {
+            if (len > 0) {
                 payload = new byte[len];
                 in.readBytes(payload);
             }
 
             byte[] sig = null;
             int sig_len = in.readInt();
-            if( sig_len > 0 ) {
+            if (sig_len > 0) {
                 sig = new byte[sig_len];
                 in.readBytes(sig);
             }

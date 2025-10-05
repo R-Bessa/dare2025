@@ -5,7 +5,7 @@ import pt.unl.fct.di.novasys.network.data.Host;
 
 public class ReadRequest extends ProtoRequest {
 
-	public final static short REQUEST_ID = 506;
+	public final static short REQUEST_ID = 503;
 
 	private final Host sender;
 

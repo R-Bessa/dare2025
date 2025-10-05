@@ -1,4 +1,4 @@
-package protocols.common.events;
+package protocols.events;
 
 import java.security.PrivateKey;
 import java.security.PublicKey;

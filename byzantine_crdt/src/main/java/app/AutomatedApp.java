@@ -9,11 +9,11 @@ import app.timers.DisseminationTimer;
 import app.timers.ExitTimer;
 import app.timers.StartTimer;
 import app.timers.StopTimer;
-import protocols.common.events.ChannelAvailable;
-import protocols.common.events.NeighborUp;
-import protocols.common.events.SecureChannelAvailable;
-import protocols.crdt.AWSet;
-import protocols.crdt.ByzantineAWSet;
+import protocols.events.ChannelAvailable;
+import protocols.events.NeighborUp;
+import protocols.events.SecureChannelAvailable;
+import protocols.crdt.ORSet;
+import protocols.crdt.ByzantineORSet;
 import protocols.crdt.replies.AddReply;
 import protocols.crdt.replies.ReadReply;
 import protocols.crdt.replies.RemoveReply;
@@ -24,11 +24,9 @@ import pt.unl.fct.di.novasys.network.data.Host;
 import utils.ChatMembers;
 import utils.HashProducer;
 
-/** @author Ricardo Bessa **/
 public class AutomatedApp extends GenericProtocol {
     private static final Logger logger = LogManager.getLogger(AutomatedApp.class);
 
-    //Protocol debug() Information, to register in babel
     public static final String PROTO_NAME = "AutomatedApp";
     public static final short PROTO_ID = 400;
     public final static String FAULT_MODEL = "fault_model";
@@ -44,15 +42,11 @@ public class AutomatedApp extends GenericProtocol {
     
     private Host self;
     private short crdtProtoId;
-
     private long broadCastTimer;
-
     private List<String> chat_members;
 
 
-    public AutomatedApp() {
-        super(PROTO_NAME, PROTO_ID);
-    }
+    public AutomatedApp() { super(PROTO_NAME, PROTO_ID); }
 
     @Override
     public void init(Properties props) throws HandlerRegistrationException {
@@ -64,6 +58,9 @@ public class AutomatedApp extends GenericProtocol {
 
         this.chat_members = new ArrayList<>();
         chat_members.addAll(Arrays.asList(ChatMembers.members));
+
+        crdtProtoId = props.getProperty(FAULT_MODEL).equals("crash") ? ORSet.PROTO_ID : ByzantineORSet.PROTO_ID;
+
 
         /* ------------------------------- Subscribe Notifications ----------------------------------- */
         subscribeNotification(ChannelAvailable.NOTIFICATION_ID, this::uponChannelAvailable);
@@ -81,9 +78,6 @@ public class AutomatedApp extends GenericProtocol {
         registerReplyHandler(RemoveReply.REPLY_ID, this::handleRemoveReply);
         registerReplyHandler(ReadReply.REPLY_ID, this::handleReadReply);
 
-        if(props.getProperty(FAULT_MODEL).equals("crash"))
-            crdtProtoId = AWSet.PROTO_ID;
-        else crdtProtoId = ByzantineAWSet.PROTO_ID;
 
         //Wait prepareTime seconds before starting
         logger.debug("Waiting...");
@@ -94,14 +88,12 @@ public class AutomatedApp extends GenericProtocol {
 
     public void uponChannelAvailable(ChannelAvailable notification, short protoSource) {
     	this.self = notification.getMyHost();
-
         logger.debug("Communication Channel is ready... starting wait time to start broadcasting ({}s)", prepareTime);
     	setupTimer(new StartTimer(), prepareTime * 1000L);
     }
 
     public void uponSecureChannelAvailable(SecureChannelAvailable notification, short protoSource) {
         this.self = notification.getMyHost();
-
         logger.debug("Secure Communication Channel is ready... starting wait time to start broadcasting ({}s)", prepareTime);
         setupTimer(new StartTimer(), prepareTime * 1000L);
     }

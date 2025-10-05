@@ -3,7 +3,6 @@ package protocols.crdt.replies;
 import pt.unl.fct.di.novasys.babel.generic.ProtoReply;
 import pt.unl.fct.di.novasys.network.data.Host;
 
-import java.util.Set;
 import java.util.UUID;
 
 public class AddReply extends ProtoReply {
@@ -12,14 +11,12 @@ public class AddReply extends ProtoReply {
     private final Host sender;
     private final UUID add_id;
     private final String element;
-    private final Set<String> state;
 
-    public AddReply(Host sender, UUID add_id, String element, Set<String> state)  {
+    public AddReply(Host sender, UUID add_id, String element)  {
         super(REPLY_ID);
         this.sender = sender;
         this.add_id = add_id;
         this.element = element;
-        this.state = state;
     }
 
     public Host getSender() {
@@ -34,7 +31,4 @@ public class AddReply extends ProtoReply {
         return element;
     }
 
-    public Set<String> getState() {
-        return state;
-    }
 }

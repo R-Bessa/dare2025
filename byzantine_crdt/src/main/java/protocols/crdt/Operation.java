@@ -15,9 +15,7 @@ public class Operation {
         this.element = element;
     }
 
-    public String getType() {
-        return type;
-    }
+    public String getType() { return type; }
 
     public UUID getAdd_id() {
         return add_id;
@@ -43,6 +41,7 @@ public class Operation {
             dos.writeLong(this.add_id.getLeastSignificantBits());
             dos.flush();
             return bos.toByteArray();
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -68,6 +67,7 @@ public class Operation {
             UUID add_id = new UUID(mostSig, leastSig);
 
             return new Operation(type, add_id, element);
+
         } catch (IOException e) {
             e.printStackTrace();
         }

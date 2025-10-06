@@ -27,7 +27,6 @@ public class CausalReliableBcastProtocol extends GenericProtocol {
     private final HashSet<BroadcastMessage> pending;
 	private Host mySelf;
 
-    //TODO byzantine_rep flag, test/screenshot equivocation, causality attack (send wrong vv) and impersonation
 
 	public CausalReliableBcastProtocol() {
 		super(PROTO_NAME, PROTO_ID);

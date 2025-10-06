@@ -3,7 +3,7 @@ import java.util.Properties;
 import app.AutomatedApp;
 import app.InteractiveApp;
 import protocols.broadcast.crash.CausalReliableBcastProtocol;
-import protocols.broadcast.crash.SignedReliableBcastProtocol;
+import protocols.broadcast.byzantine.ByzantineReliableBcastProtocol;
 import protocols.crdt.ORSet;
 import protocols.crdt.ByzantineORSet;
 import protocols.membership.SecureStaticMembershipProtocol;
@@ -42,7 +42,7 @@ public class Main {
 
             } else { // BYZANTINE FAULT TOLERANCE
                 crdt = new ByzantineORSet();
-                bcast = new SignedReliableBcastProtocol();
+                bcast = new ByzantineReliableBcastProtocol();
                 membership = new SecureStaticMembershipProtocol();
             }
 

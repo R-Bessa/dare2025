@@ -4,7 +4,7 @@ import app.AutomatedApp;
 import app.InteractiveApp;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import protocols.broadcast.crash.SignedReliableBcastProtocol;
+import protocols.broadcast.byzantine.ByzantineReliableBcastProtocol;
 import protocols.broadcast.notifications.DeliveryNotification;
 import protocols.broadcast.request.BroadcastRequest;
 import protocols.events.SecureChannelAvailable;
@@ -66,7 +66,7 @@ public class ByzantineORSet extends GenericProtocol {
 
         Operation op = new Operation(ADD_OP, req.getAdd_id(), req.getElement());
         BroadcastRequest bcast_req = new BroadcastRequest(mySelf, op.encode());
-        sendRequest(bcast_req, SignedReliableBcastProtocol.PROTO_ID);
+        sendRequest(bcast_req, ByzantineReliableBcastProtocol.PROTO_ID);
     }
 
     public void handleRemoveRequest(RemoveRequest req, short sourceProto) {
@@ -74,7 +74,7 @@ public class ByzantineORSet extends GenericProtocol {
 
         Operation op = new Operation(REMOVE_OP, req.getAdd_id(), req.getElement());
         BroadcastRequest bcast_req = new BroadcastRequest(mySelf, op.encode());
-        sendRequest(bcast_req, SignedReliableBcastProtocol.PROTO_ID);
+        sendRequest(bcast_req, ByzantineReliableBcastProtocol.PROTO_ID);
     }
 
     public void handleReadRequest(ReadRequest req, short sourceProto) {

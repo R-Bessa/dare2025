@@ -51,6 +51,10 @@ public class SignedBroadcastMessage extends SignedProtoMessage {
 		return this.payload;
 	}
 
+    public byte[] getOriginalSignature() {
+        return originalSignature;
+    }
+
     public boolean verifyOriginalSignature(PublicKey publicKey) throws SignatureException, NoSuchAlgorithmException, InvalidKeyException {
         return SignaturesHelper.checkSignature(payload, originalSignature, publicKey);
     }

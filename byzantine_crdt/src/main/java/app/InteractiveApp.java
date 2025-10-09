@@ -32,14 +32,12 @@ public class InteractiveApp extends GenericProtocol {
     public final static String ADD_OP = "add";
     public final static String ADD_OP_USAGE = "Usage: add <value>";
     public final static String REMOVE_OP = "remove";
-    public final static String REMOVE_OP_USAGE = "Usage: remove <value> <add_id>";
+    public final static String REMOVE_OP_USAGE = "Usage: remove <value>";
     public final static String READ_OP = "read";
     public final static String READ_OP_USAGE = "Usage: read";
     public final static String EXIT = "exit";
     public final static String EXIT_USAGE = "Usage: exit";
     public final static String HELP = "help";
-
-    public final static String INVALID_UUID = "Invalid UUID";
 
     private Host self;
     private short crdtProtoId;
@@ -83,16 +81,10 @@ public class InteractiveApp extends GenericProtocol {
                         break;
 
                     case REMOVE_OP:
-                        if(components.length != 3)
+                        if(components.length != 2)
                             logger.error(REMOVE_OP_USAGE);
-                        else {
-                            try {
-                                RemoveRequest req = new RemoveRequest(self, components[1], UUID.fromString(components[2]));
-                                sendRequest(req, crdtProtoId);
-                            } catch (Exception e) {
-                                logger.error(INVALID_UUID);
-                            }
-                        }
+                        else
+                            sendRequest(new RemoveRequest(self, components[1]), crdtProtoId);
                         break;
 
                     case READ_OP:
@@ -147,11 +139,11 @@ public class InteractiveApp extends GenericProtocol {
     /* ------------------------------- Reply Handlers ----------------------------------- */
 
     public void handleAddReply(AddReply reply, short sourceProto) {
-        logger.info("Successfully added member: ({}, {})", reply.getAdd_id(), reply.getElement());
+        logger.info("Successfully added member: ({})", reply.getElement());
     }
 
     public void handleRemoveReply(RemoveReply reply, short sourceProto) {
-        logger.info("Successfully removed member: ({}, {})", reply.getAdd_id(), reply.getElement());
+        logger.info("Successfully removed member: ({})", reply.getElement());
     }
 
     public void handleReadReply(ReadReply reply, short sourceProto) {

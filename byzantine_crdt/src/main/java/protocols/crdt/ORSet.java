@@ -4,6 +4,7 @@ import app.AutomatedApp;
 import app.InteractiveApp;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import protocols.broadcast.byzantine.ByzantineReliableBcastProtocol;
 import protocols.broadcast.crash.CausalReliableBcastProtocol;
 import protocols.broadcast.notifications.DeliveryNotification;
 import protocols.broadcast.request.BroadcastRequest;
@@ -64,17 +65,23 @@ public class ORSet extends GenericProtocol {
     public void handleAddRequest(AddRequest req, short sourceProto) {
         logger.debug("Received Add Operation: ({},{})", req.getAdd_id(), req.getElement());
 
-        Operation op = new Operation(ADD_OP, req.getAdd_id(), req.getElement());
+        Operation op = new Operation(ADD_OP, Set.of(req.getAdd_id()), req.getElement());
         BroadcastRequest bcast_req = new BroadcastRequest(mySelf, op.encode());
         sendRequest(bcast_req, CausalReliableBcastProtocol.PROTO_ID);
     }
 
     public void handleRemoveRequest(RemoveRequest req, short sourceProto) {
-        logger.debug("Received Remove Operation: ({},{})", req.getAdd_id(), req.getElement());
+        logger.debug("Received Remove Operation: ({})", req.getElement());
 
-        Operation op = new Operation(REMOVE_OP, req.getAdd_id(), req.getElement());
-        BroadcastRequest bcast_req = new BroadcastRequest(mySelf, op.encode());
-        sendRequest(bcast_req, CausalReliableBcastProtocol.PROTO_ID);
+        Set<UUID> observed_adds = state.get(req.getElement());
+        if(observed_adds == null)
+            sendReply(new RemoveReply(req.getElement()), appProtoId);
+
+        else {
+            Operation op = new Operation(REMOVE_OP, state.get(req.getElement()), req.getElement());
+            BroadcastRequest bcast_req = new BroadcastRequest(mySelf, op.encode());
+            sendRequest(bcast_req, CausalReliableBcastProtocol.PROTO_ID);
+        }
     }
 
     public void handleReadRequest(ReadRequest req, short sourceProto) {
@@ -94,7 +101,6 @@ public class ORSet extends GenericProtocol {
 
     private void uponDeliver(DeliveryNotification notification, short sourceProto) {
         Operation op = Operation.decode(notification.getPayload());
-        if(op == null) return;
 
         if(op.getType().equals(ADD_OP))
             processAddOperation(op);
@@ -103,36 +109,32 @@ public class ORSet extends GenericProtocol {
             processRemoveRequest(op);
 
         if(notification.getSender().equals(mySelf)) {
-            if(op.getType().equals(ADD_OP)) {
-                AddReply reply = new AddReply(mySelf, op.getAdd_id(), op.getElement());
-                sendReply(reply, appProtoId);
-            }
+            if(op.getType().equals(ADD_OP))
+                sendReply(new AddReply(op.getElement()), appProtoId);
 
-            else if(op.getType().equals(REMOVE_OP)) {
-                RemoveReply reply = new RemoveReply(mySelf, op.getAdd_id(), op.getElement());
-                sendReply(reply, appProtoId);
-            }
+            else if(op.getType().equals(REMOVE_OP))
+                sendReply(new RemoveReply(op.getElement()), appProtoId);
         }
     }
 
 
     /* ------------------------------------- Procedures --------------------------------------------- */
 
-    private void processAddOperation(Operation add) {
-        Set<UUID> adds  = state.get(add.getElement());
+    private void processAddOperation(Operation op) {
+        Set<UUID> adds  = state.get(op.getElement());
         if (adds == null)
             adds = new HashSet<>();
 
-        adds.add(add.getAdd_id());
-        state.put(add.getElement(), adds);
+        adds.add(op.getAdd_ids().iterator().next());
+        state.put(op.getElement(), adds);
     }
 
-    private void processRemoveRequest(Operation remove) {
-        Set<UUID> adds  = state.get(remove.getElement());
+    private void processRemoveRequest(Operation op) {
+        Set<UUID> adds  = state.get(op.getElement());
         if(adds != null) {
-            adds.remove(remove.getAdd_id());
+            adds.removeAll(op.getAdd_ids());
             if(adds.isEmpty())
-                state.remove(remove.getElement());
+                state.remove(op.getElement());
         }
     }
 

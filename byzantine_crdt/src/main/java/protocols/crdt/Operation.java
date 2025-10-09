@@ -2,23 +2,25 @@ package protocols.crdt;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 public class Operation {
     private final String type;
-    private final UUID add_id;
+    private final Set<UUID> add_ids;
     private final String element;
 
-    public Operation(String type, UUID add_id, String element) {
+    public Operation(String type, Set<UUID> add_ids, String element) {
         this.type = type;
-        this.add_id = add_id;
+        this.add_ids = add_ids;
         this.element = element;
     }
 
     public String getType() { return type; }
 
-    public UUID getAdd_id() {
-        return add_id;
+    public Set<UUID> getAdd_ids() {
+        return add_ids;
     }
 
     public String getElement() {
@@ -29,23 +31,27 @@ public class Operation {
         try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
              DataOutputStream dos = new DataOutputStream(bos)) {
 
-            byte[] typeBytes = this.type.getBytes(StandardCharsets.UTF_8);
+            byte[] typeBytes = type.getBytes(StandardCharsets.UTF_8);
             dos.writeInt(typeBytes.length);
             dos.write(typeBytes);
 
-            byte[] elemBytes = this.element.getBytes(StandardCharsets.UTF_8);
+            byte[] elemBytes = element.getBytes(StandardCharsets.UTF_8);
             dos.writeInt(elemBytes.length);
             dos.write(elemBytes);
 
-            dos.writeLong(this.add_id.getMostSignificantBits());
-            dos.writeLong(this.add_id.getLeastSignificantBits());
+            dos.writeInt(add_ids.size());
+            for (UUID id : add_ids) {
+                dos.writeLong(id.getMostSignificantBits());
+                dos.writeLong(id.getLeastSignificantBits());
+            }
+
             dos.flush();
             return bos.toByteArray();
 
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Failed to decode Operation", e);
         }
-        return null;
+
     }
 
     public static Operation decode(byte[] payload) {
@@ -62,15 +68,18 @@ public class Operation {
             dis.readFully(elemBytes);
             String element = new String(elemBytes, StandardCharsets.UTF_8);
 
-            long mostSig = dis.readLong();
-            long leastSig = dis.readLong();
-            UUID add_id = new UUID(mostSig, leastSig);
+            int setSize = dis.readInt();
+            Set<UUID> add_ids = new HashSet<>();
+            for (int i = 0; i < setSize; i++) {
+                long mostSig = dis.readLong();
+                long leastSig = dis.readLong();
+                add_ids.add(new UUID(mostSig, leastSig));
+            }
 
-            return new Operation(type, add_id, element);
+            return new Operation(type, add_ids, element);
 
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Failed to decode Operation", e);
         }
-        return null;
     }
 }

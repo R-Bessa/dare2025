@@ -9,22 +9,16 @@ public class RemoveRequest extends ProtoRequest {
     public final static short REQUEST_ID = 504;
 
     private final Host sender;
-    private final UUID add_id;
     private final String element;
 
-    public RemoveRequest(Host sender, String element, UUID add_id) {
+    public RemoveRequest(Host sender, String element) {
         super(REQUEST_ID);
         this.sender = sender;
-        this.add_id = add_id;
         this.element = element;
     }
 
     public Host getSender() {
         return sender;
-    }
-
-    public UUID getAdd_id() {
-        return add_id;
     }
 
     public String getElement() {

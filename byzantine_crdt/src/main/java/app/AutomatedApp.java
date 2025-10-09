@@ -137,11 +137,11 @@ public class AutomatedApp extends GenericProtocol {
     /* ------------------------------- Reply Handlers ----------------------------------- */
 
     public void handleAddReply(AddReply reply, short sourceProto) {
-        logger.info("Successfully added member: ({}, {})", reply.getAdd_id(), reply.getElement());
+        logger.info("Successfully added member: ({})", reply.getElement());
     }
 
     public void handleRemoveReply(RemoveReply reply, short sourceProto) {
-        logger.info("Successfully removed member: ({}, {})", reply.getAdd_id(), reply.getElement());
+        logger.info("Successfully removed member: ({})", reply.getElement());
     }
 
     public void handleReadReply(ReadReply reply, short sourceProto) {

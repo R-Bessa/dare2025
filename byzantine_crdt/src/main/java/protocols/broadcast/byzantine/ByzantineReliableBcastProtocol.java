@@ -160,9 +160,8 @@ public class ByzantineReliableBcastProtocol extends GenericProtocol {
                 && echos.get(echo.getMessageID()).size() >= echos_threshold) {
 
             try {
-                if (!publicKeys.containsKey(echo.getOriginalSender()) || !echo.verifyOriginalSignature(publicKeys.get(echo.getOriginalSender()))) {
+                if (!publicKeys.containsKey(echo.getOriginalSender()) || !echo.verifyOriginalSignature(publicKeys.get(echo.getOriginalSender())))
                     return;
-                }
 
             } catch (Exception e) {
                 logger.error("Could not verify the signature from original sender.");

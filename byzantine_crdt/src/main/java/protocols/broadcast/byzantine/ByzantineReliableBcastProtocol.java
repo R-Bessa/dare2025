@@ -40,6 +40,10 @@ public class ByzantineReliableBcastProtocol extends GenericProtocol {
 	private PrivateKey myPrivateKey;
 
 
+    //TODO better check equivocation ids in other steps and original sender
+    //TODO introduce causality and protect with hash graph
+    //TODO app based filter for trust levels? how to handle state transfer?
+    // String str = new String(bytes, StandardCharsets.UTF_8);
 	public ByzantineReliableBcastProtocol() {
 		super(PROTO_NAME, PROTO_ID);
 		
@@ -125,14 +129,15 @@ public class ByzantineReliableBcastProtocol extends GenericProtocol {
 			SignedBroadcastMessage bm = new SignedBroadcastMessage(mySelf, req.encode(), originalSenderSig);
 			bm.signMessage(myPrivateKey);
 
-			for(Host h: neighbors)
-				sendMessage(bm, h);
-
             processBroadcastMessage(bm, mySelf);
-			
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+
+            for(Host h: neighbors)
+                sendMessage(bm, h);
+
+        } catch (Exception e) {
+            logger.error("Failed to generate signatures for the broadcast message.");
+            e.printStackTrace();
+        }
 	}
 
 
@@ -145,81 +150,107 @@ public class ByzantineReliableBcastProtocol extends GenericProtocol {
 
     public void uponEchoMessage(EchoMessage echo, Host sender, short protoID, int channel) {
         try {
-            if (!publicKeys.containsKey(sender) || !echo.checkSignature(publicKeys.get(sender)))
+            if (!echo.checkSignature(publicKeys.get(sender))) {
+                logger.error("Invalid signature from the sender.");
                 return;
+            }
 
         } catch (Exception e) {
-            logger.error("Could not verify the signature from sender.");
-            e.printStackTrace();
+            logger.error("Could not verify the signature from the sender.");
+            return;
         }
 
-        echos.computeIfAbsent(echo.getMessageID(), msg_id -> new HashSet<>()).add(echo);
+        Set<EchoMessage> my_echos = echos.getOrDefault(echo.getMessageID(), new HashSet<>());
+        if(!my_echos.isEmpty()) {
+            EchoMessage prev_echo = my_echos.iterator().next();
+            if (!Arrays.equals(echo.getPayload(), prev_echo.getPayload())) {
+                logger.error("Equivocation for msg id {}", echo.getMessageID());
+                return;
+            }
+        }
+
+        my_echos.add(echo);
+        echos.put(echo.getMessageID(), my_echos);
+
         int echos_threshold = (int) Math.ceil((neighbors.size() + 1 + f) / 2.0);
 
-        if(!sentReady.getOrDefault(echo.getMessageID(), false)
-                && echos.get(echo.getMessageID()).size() >= echos_threshold) {
+        if(!sentReady.getOrDefault(echo.getMessageID(), false) && my_echos.size() >= echos_threshold) {
 
             try {
-                if (!publicKeys.containsKey(echo.getOriginalSender()) || !echo.verifyOriginalSignature(publicKeys.get(echo.getOriginalSender())))
+                if(!echo.verifyOriginalSignature(publicKeys.get(echo.getOriginalSender()))) {
+                    logger.error("Invalid signature from the original sender.");
                     return;
+                }
 
             } catch (Exception e) {
-                logger.error("Could not verify the signature from original sender.");
-                e.printStackTrace();
+                logger.error("Could not verify the signature from the original sender.");
+                return;
             }
 
             sentReady.put(echo.getMessageID(), true);
             ReadyMessage ready = new ReadyMessage(mySelf, echo.getMessageID(), echo.getPayload());
-            readys.computeIfAbsent(ready.getMessageID(), msg_id -> new HashSet<>()).add(ready);
 
             try {
                 ready.signMessage(myPrivateKey);
 
-                for(Host h: this.neighbors)
-                    sendMessage(ready, h);
-
             } catch (Exception e) {
                 logger.error("Could not sign my ready message.");
-                e.printStackTrace();
+                return;
             }
 
+            Set<ReadyMessage> my_readys = readys.getOrDefault(echo.getMessageID(), new HashSet<>());
+            my_readys.add(ready);
+            readys.put(echo.getMessageID(), my_readys);
+
+            for(Host h: this.neighbors)
+                sendMessage(ready, h);
         }
     }
 
 
     public void uponReadyMessage(ReadyMessage ready, Host sender, short protoID, int channel) {
         try {
-            if (!publicKeys.containsKey(sender) || !ready.checkSignature(publicKeys.get(sender)))
+            if (!ready.checkSignature(publicKeys.get(sender))) {
+                logger.error("Invalid signature from the sender.");
                 return;
+            }
 
         } catch (Exception e) {
             logger.error("Could not verify the signature from sender.");
-            e.printStackTrace();
+            return;
         }
 
-        readys.computeIfAbsent(ready.getMessageID(), msg_id -> new HashSet<>()).add(ready);
+        Set<ReadyMessage> my_readys = readys.getOrDefault(ready.getMessageID(), new HashSet<>());
+        if(!my_readys.isEmpty()) {
+            ReadyMessage prev_ready = my_readys.iterator().next();
+            if (!Arrays.equals(ready.getPayload(), prev_ready.getPayload())) {
+                logger.debug("Equivocation for msg id {}", ready.getMessageID());
+                return;
+            }
+        }
 
-        if (!sentReady.getOrDefault(ready.getMessageID(), false)
-                && readys.get(ready.getMessageID()).size() > this.f) {
+        my_readys.add(ready);
+        readys.put(ready.getMessageID(), my_readys);
 
+        if (!sentReady.getOrDefault(ready.getMessageID(), false) && my_readys.size() > this.f) {
             sentReady.put(ready.getMessageID(), true);
             ReadyMessage my_ready = new ReadyMessage(mySelf, ready.getMessageID(), ready.getPayload());
-            readys.get(my_ready.getMessageID()).add(my_ready);
 
             try {
                 my_ready.signMessage(myPrivateKey);
 
-                for (Host h : this.neighbors)
-                    sendMessage(my_ready, h);
-
             } catch (Exception e) {
                 logger.error("Could not sign my ready message.");
-                e.printStackTrace();
+                return;
             }
 
+            readys.get(my_ready.getMessageID()).add(my_ready);
+
+            for (Host h : this.neighbors)
+                sendMessage(my_ready, h);
         }
 
-        if (!delivered.contains(ready.getMessageID()) && readys.get(ready.getMessageID()).size() > 2 * this.f) {
+        if (!delivered.contains(ready.getMessageID()) && my_readys.size() > 2 * this.f) {
             try {
                 this.delivered.add(ready.getMessageID());
                 triggerNotification(DeliveryNotification.fromMessage(ready.getPayload()));
@@ -235,30 +266,32 @@ public class ByzantineReliableBcastProtocol extends GenericProtocol {
 
     private void processBroadcastMessage(SignedBroadcastMessage msg, Host sender) {
         try {
-            if (!sender.equals(mySelf)) {
-                if(!publicKeys.containsKey(sender) || !msg.checkSignature(publicKeys.get(sender)))
-                    return;
+            if (!sender.equals(mySelf) && !msg.checkSignature(publicKeys.get(sender))) {
+                logger.error("Invalid signature from the sender.");
+                return;
             }
 
         } catch (Exception e) {
-            logger.error("Could not verify the signature from sender.");
-            e.printStackTrace();
+            logger.error("Could not verify the signature from the sender.");
+            return;
         }
 
         EchoMessage echo = new EchoMessage(msg.getOriginalSender(), mySelf, msg.getMessageID(), msg.getPayload(), msg.getOriginalSignature());
-        echos.computeIfAbsent(msg.getMessageID(), msg_id -> new HashSet<>()).add(echo);
 
         try {
             echo.signMessage(myPrivateKey);
 
-            for(Host h: this.neighbors)
-                sendMessage(echo, h);
-
         } catch (Exception e) {
             logger.error("Could not sign my echo message.");
-            e.printStackTrace();
+            return;
         }
 
+        Set<EchoMessage> my_echos = echos.getOrDefault(echo.getMessageID(), new HashSet<>());
+        my_echos.add(echo);
+        echos.put(echo.getMessageID(), my_echos);
+
+        for(Host h: this.neighbors)
+            sendMessage(echo, h);
     }
 
 }

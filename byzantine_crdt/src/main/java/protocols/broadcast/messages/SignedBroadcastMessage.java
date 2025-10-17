@@ -1,17 +1,12 @@
 package protocols.broadcast.messages;
 
 import java.io.IOException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
-import java.security.SignatureException;
 import java.util.UUID;
 
 import io.netty.buffer.ByteBuf;
 import pt.unl.fct.di.novasys.babel.generic.signed.SignedMessageSerializer;
 import pt.unl.fct.di.novasys.babel.generic.signed.SignedProtoMessage;
 import pt.unl.fct.di.novasys.network.data.Host;
-import utils.SignaturesHelper;
 
 public class SignedBroadcastMessage extends SignedProtoMessage {
 
@@ -53,10 +48,6 @@ public class SignedBroadcastMessage extends SignedProtoMessage {
 
     public byte[] getOriginalSignature() {
         return originalSignature;
-    }
-
-    public boolean verifyOriginalSignature(PublicKey publicKey) throws SignatureException, NoSuchAlgorithmException, InvalidKeyException {
-        return SignaturesHelper.checkSignature(payload, originalSignature, publicKey);
     }
 
     public final static SignedMessageSerializer<SignedBroadcastMessage> serializer = new SignedMessageSerializer<>() {

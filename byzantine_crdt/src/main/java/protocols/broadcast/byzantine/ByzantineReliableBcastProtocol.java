@@ -1,5 +1,6 @@
 package protocols.broadcast.byzantine;
 
+import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.util.*;
 
@@ -31,19 +32,17 @@ public class ByzantineReliableBcastProtocol extends GenericProtocol {
 	private final Set<Host> neighbors;
 	private final Map<Host, PublicKey> publicKeys;
 
-    private final Map<UUID, Set<EchoMessage>> echos;
+    private final Map<UUID, Map<String, Set<EchoMessage>>> echos;
     private final Map<UUID, Boolean> sentReady;
-    private final Map<UUID, Set<ReadyMessage>> readys;
+    private final Map<UUID, Map<String, Set<ReadyMessage>>> readys;
 
 	private Host mySelf;
 	private PublicKey myPublicKey;
 	private PrivateKey myPrivateKey;
 
 
-    //TODO better check equivocation ids in other steps and original sender
     //TODO introduce causality and protect with hash graph
     //TODO app based filter for trust levels? how to handle state transfer?
-    // String str = new String(bytes, StandardCharsets.UTF_8);
 	public ByzantineReliableBcastProtocol() {
 		super(PROTO_NAME, PROTO_ID);
 		
@@ -160,17 +159,11 @@ public class ByzantineReliableBcastProtocol extends GenericProtocol {
             return;
         }
 
-        Set<EchoMessage> my_echos = echos.getOrDefault(echo.getMessageID(), new HashSet<>());
-        if(!my_echos.isEmpty()) {
-            EchoMessage prev_echo = my_echos.iterator().next();
-            if (!Arrays.equals(echo.getPayload(), prev_echo.getPayload())) {
-                logger.error("Equivocation for msg id {}", echo.getMessageID());
-                return;
-            }
-        }
+        String payload = new String(echo.getPayload(), StandardCharsets.UTF_8);
+        Map<String, Set<EchoMessage>> echos_per_payload = echos.computeIfAbsent(echo.getMessageID(), mid -> new HashMap<>());
 
+        Set<EchoMessage> my_echos = echos_per_payload.computeIfAbsent(payload, m -> new HashSet<>());
         my_echos.add(echo);
-        echos.put(echo.getMessageID(), my_echos);
 
         int echos_threshold = (int) Math.ceil((neighbors.size() + 1 + f) / 2.0);
 
@@ -198,9 +191,8 @@ public class ByzantineReliableBcastProtocol extends GenericProtocol {
                 return;
             }
 
-            Set<ReadyMessage> my_readys = readys.getOrDefault(echo.getMessageID(), new HashSet<>());
-            my_readys.add(ready);
-            readys.put(echo.getMessageID(), my_readys);
+            Map<String, Set<ReadyMessage>> my_readys = readys.computeIfAbsent(ready.getMessageID(), mid -> new HashMap<>());
+            my_readys.computeIfAbsent(payload, m -> new HashSet<>()).add(ready);
 
             for(Host h: this.neighbors)
                 sendMessage(ready, h);
@@ -220,17 +212,11 @@ public class ByzantineReliableBcastProtocol extends GenericProtocol {
             return;
         }
 
-        Set<ReadyMessage> my_readys = readys.getOrDefault(ready.getMessageID(), new HashSet<>());
-        if(!my_readys.isEmpty()) {
-            ReadyMessage prev_ready = my_readys.iterator().next();
-            if (!Arrays.equals(ready.getPayload(), prev_ready.getPayload())) {
-                logger.debug("Equivocation for msg id {}", ready.getMessageID());
-                return;
-            }
-        }
+        Map<String, Set<ReadyMessage>> readys_per_payload = readys.computeIfAbsent(ready.getMessageID(), mid -> new HashMap<>());
+        String payload = new String(ready.getPayload(), StandardCharsets.UTF_8);
 
+        Set<ReadyMessage> my_readys = readys_per_payload.computeIfAbsent(payload, m -> new HashSet<>());
         my_readys.add(ready);
-        readys.put(ready.getMessageID(), my_readys);
 
         if (!sentReady.getOrDefault(ready.getMessageID(), false) && my_readys.size() > this.f) {
             sentReady.put(ready.getMessageID(), true);
@@ -244,7 +230,7 @@ public class ByzantineReliableBcastProtocol extends GenericProtocol {
                 return;
             }
 
-            readys.get(my_ready.getMessageID()).add(my_ready);
+            my_readys.add(ready);
 
             for (Host h : this.neighbors)
                 sendMessage(my_ready, h);
@@ -286,9 +272,9 @@ public class ByzantineReliableBcastProtocol extends GenericProtocol {
             return;
         }
 
-        Set<EchoMessage> my_echos = echos.getOrDefault(echo.getMessageID(), new HashSet<>());
-        my_echos.add(echo);
-        echos.put(echo.getMessageID(), my_echos);
+        String payload = new String(echo.getPayload(), StandardCharsets.UTF_8);
+        Map<String, Set<EchoMessage>> my_echos = echos.computeIfAbsent(echo.getMessageID(), mid -> new HashMap<>());
+        my_echos.computeIfAbsent(payload, m -> new HashSet<>()).add(echo);
 
         for(Host h: this.neighbors)
             sendMessage(echo, h);

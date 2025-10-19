@@ -9,6 +9,8 @@ import app.timers.DisseminationTimer;
 import app.timers.ExitTimer;
 import app.timers.StartTimer;
 import app.timers.StopTimer;
+import protocols.crdt.requests.ReadRequest;
+import protocols.crdt.requests.RemoveRequest;
 import protocols.events.ChannelAvailable;
 import protocols.events.NeighborUp;
 import protocols.events.SecureChannelAvailable;
@@ -21,7 +23,6 @@ import protocols.crdt.requests.AddRequest;
 import pt.unl.fct.di.novasys.babel.core.GenericProtocol;
 import pt.unl.fct.di.novasys.babel.exceptions.HandlerRegistrationException;
 import pt.unl.fct.di.novasys.network.data.Host;
-import utils.ChatMembers;
 import utils.HashProducer;
 
 public class AutomatedApp extends GenericProtocol {
@@ -31,6 +32,8 @@ public class AutomatedApp extends GenericProtocol {
     public static final short PROTO_ID = 400;
     public final static String FAULT_MODEL = "fault_model";
 
+    //Size of the payload of each message (in bytes)
+    private int payloadSize;
     //Time to wait until starting sending messages
     private int prepareTime;
     //Time to run before shutting down
@@ -39,11 +42,19 @@ public class AutomatedApp extends GenericProtocol {
     private int cooldownTime;
     //Interval between each broadcast
     private int disseminationInterval;
-    
+
     private Host self;
     private short crdtProtoId;
     private long broadCastTimer;
-    private List<String> chat_members;
+
+    private int nAdds;
+    private int nRemoves;
+    private int currAdd;
+    private int currRemove;
+    private int totalAdds;
+    private int totalRemoves;
+    private int idx;
+    private Set<String> state;
 
 
     public AutomatedApp() { super(PROTO_NAME, PROTO_ID); }
@@ -51,13 +62,20 @@ public class AutomatedApp extends GenericProtocol {
     @Override
     public void init(Properties props) throws HandlerRegistrationException {
     	//Read configurations
+        this.payloadSize = Integer.parseInt(props.getProperty("payload_size"));
         this.prepareTime = Integer.parseInt(props.getProperty("prepare_time")); //in seconds
         this.cooldownTime = Integer.parseInt(props.getProperty("cooldown_time")); //in seconds
         this.runTime = Integer.parseInt(props.getProperty("run_time")); //in seconds
         this.disseminationInterval = Integer.parseInt(props.getProperty("broadcast_interval")); //in milliseconds
 
-        this.chat_members = new ArrayList<>();
-        chat_members.addAll(Arrays.asList(ChatMembers.members));
+        this.nAdds = Integer.parseInt(props.getProperty("n_adds"));
+        this.nRemoves = nAdds / 2;
+        this.currAdd = 0;
+        this.currRemove = 0;
+        this.totalAdds = 0;
+        this.totalRemoves = 0;
+        this.idx = 0;
+        this.state = new HashSet<>();
 
         crdtProtoId = props.getProperty(FAULT_MODEL).equals("crash") ? ORSet.PROTO_ID : ByzantineORSet.PROTO_ID;
 
@@ -115,12 +133,29 @@ public class AutomatedApp extends GenericProtocol {
     }
 
     private void uponBroadcastTimer(DisseminationTimer broadcastTimer, long timerId) {
-        Collections.shuffle(chat_members);
-        sendRequest(new AddRequest(self, chat_members.get(0)), crdtProtoId);
-        chat_members.remove(0);
+        if(currAdd == nAdds) {
+            if(!state.iterator().hasNext())
+                return;
+
+            sendRequest(new RemoveRequest(self, state.iterator().next()), crdtProtoId);
+            currRemove++;
+
+            if(currRemove == nRemoves) {
+                currRemove = 0;
+                currAdd = 0;
+            }
+        }
+        else {
+            String payload = this.self.toString() + " MSG" + idx + randomCapitalLetters(Math.max(0, payloadSize));
+            sendRequest(new AddRequest(self, payload), crdtProtoId);
+            currAdd++;
+            idx++;
+        }
+
     }
 
     private void uponStopTimer(StopTimer stopTimer, long timerId) {
+        sendRequest(new ReadRequest(self), crdtProtoId);
         logger.debug("Stopping publications");
         this.cancelTimer(broadCastTimer);
         logger.debug("Stopping sending messages...");
@@ -129,7 +164,16 @@ public class AutomatedApp extends GenericProtocol {
     }
     
     private void uponExitTimer(ExitTimer exitTimer, long timerId) {
-        logger.debug("Exiting...");
+        logger.info("Exiting...");
+        logger.info("Total adds: {}", totalAdds);
+        logger.info("Total removes: {}", totalRemoves);
+        logger.info("State: {}", HashProducer.hashSet(state));
+
+        //TODO update byzantine or-set, host.membership
+        logger.info("Latencies: ");
+        for(String latency: ORSet.latency_records)
+            logger.info(latency);
+
         System.exit(0);
     }
 
@@ -137,16 +181,35 @@ public class AutomatedApp extends GenericProtocol {
     /* ------------------------------- Reply Handlers ----------------------------------- */
 
     public void handleAddReply(AddReply reply, short sourceProto) {
-        logger.info("Successfully added member: ({})", reply.getElement());
+        logger.debug("Successfully added member: ({})", reply.getElement());
+
+        state.add(reply.getElement());
+        totalAdds++;
     }
 
     public void handleRemoveReply(RemoveReply reply, short sourceProto) {
-        logger.info("Successfully removed member: ({})", reply.getElement());
+        logger.debug("Successfully removed member: ({})", reply.getElement());
+
+        state.remove(reply.getElement());
+        totalRemoves++;
     }
 
     public void handleReadReply(ReadReply reply, short sourceProto) {
-        logger.info("Read State: {}", reply.getState());
-        logger.info("State Hash: {}", HashProducer.hashSet(reply.getState()));
+        logger.debug("Read State: {}", reply.getState());
+        logger.debug("State Hash: {}", HashProducer.hashSet(reply.getState()));
+
+        this.state = reply.getState();
+    }
+
+
+    /* ------------------------------- Procedures ----------------------------------- */
+
+    public static String randomCapitalLetters(int length) {
+        int leftLimit = 65; // letter 'A'
+        int rightLimit = 90; // letter 'Z'
+        Random random = new Random();
+        return random.ints(leftLimit, rightLimit + 1).limit(length)
+                .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append).toString();
     }
 
 }

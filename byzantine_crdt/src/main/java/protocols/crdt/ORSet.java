@@ -19,6 +19,7 @@ import pt.unl.fct.di.novasys.babel.exceptions.HandlerRegistrationException;
 import pt.unl.fct.di.novasys.network.data.Host;
 
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class ORSet extends GenericProtocol {
     private final Logger logger = LogManager.getLogger(ORSet.class);
@@ -32,6 +33,8 @@ public class ORSet extends GenericProtocol {
     public static final String APP_MODE = "app_interaction";
 
     private final Map<String, Set<UUID>> state;
+    private final Map<String, Double> latencies;
+    public static List<String> latency_records;
     private Host mySelf;
     private short appProtoId;
 
@@ -39,6 +42,8 @@ public class ORSet extends GenericProtocol {
     public ORSet() {
         super(PROTO_NAME, PROTO_ID);
         this.state = new HashMap<>();
+        this.latencies = new HashMap<>();
+        latency_records  = new ArrayList<>();
         this.mySelf = null;
     }
 
@@ -68,8 +73,8 @@ public class ORSet extends GenericProtocol {
         processAddOperation(op);
         sendReply(new AddReply(op.getElement()), appProtoId);
 
-        BroadcastRequest bcast_req = new BroadcastRequest(mySelf, op.encode());
-        sendRequest(bcast_req, CausalReliableBcastProtocol.PROTO_ID);
+        sendRequest(new BroadcastRequest(mySelf, op.encode()), CausalReliableBcastProtocol.PROTO_ID);
+        latencies.put(req.getAdd_id().toString(), System.nanoTime() / 1_000_000.0);
     }
 
     public void handleRemoveRequest(RemoveRequest req, short sourceProto) {
@@ -84,8 +89,8 @@ public class ORSet extends GenericProtocol {
             processRemoveOperation(op);
             sendReply(new RemoveReply(req.getElement()), appProtoId);
 
-            BroadcastRequest bcast_req = new BroadcastRequest(mySelf, op.encode());
-            sendRequest(bcast_req, CausalReliableBcastProtocol.PROTO_ID);
+            sendRequest(new BroadcastRequest(mySelf, op.encode()), CausalReliableBcastProtocol.PROTO_ID);
+            latencies.put(op.getElement(), System.nanoTime() / 1_000_000.0);
         }
     }
 
@@ -105,15 +110,23 @@ public class ORSet extends GenericProtocol {
     }
 
     private void uponDeliver(DeliveryNotification notification, short sourceProto) {
-        if(!notification.getSender().equals(mySelf)) {
-            Operation op = Operation.decode(notification.getPayload());
+        double endTime = System.nanoTime() / 1_000_000.0;
+        Operation op = Operation.decode(notification.getPayload());
 
-            if (op.getType().equals(ADD_OP))
-                processAddOperation(op);
+        if(notification.getSender().equals(mySelf)) {
+            String k = op.getType().equals(REMOVE_OP) ? op.getElement() :
+                    op.getAdd_ids().iterator().next().toString();
 
-            else if (op.getType().equals(REMOVE_OP))
-                processRemoveOperation(op);
+            double latency = (endTime - latencies.remove(k)) + getLatencyPenalty();
+            latency_records.add("Timestamp: " + endTime + "ms | Latency: " + latency + "ms");
+            return;
         }
+
+        if (op.getType().equals(ADD_OP))
+            processAddOperation(op);
+
+        else if (op.getType().equals(REMOVE_OP))
+            processRemoveOperation(op);
     }
 
 
@@ -136,5 +149,23 @@ public class ORSet extends GenericProtocol {
                 state.remove(op.getElement());
         }
     }
+
+    public static int getLatencyPenalty() {
+        double pFast = 0.7; // 70% are fast
+        if (ThreadLocalRandom.current().nextDouble() < pFast) {
+            // fast: gaussian around 20ms
+            return gaussianMs(20, 6, 5, 60);
+        } else {
+            // slow: gaussian around 150ms
+            return gaussianMs(150, 50, 50, 500);
+        }
+    }
+
+    public static int gaussianMs(double mean, double sigma, int min, int max) {
+        double v = ThreadLocalRandom.current().nextGaussian() * sigma + mean;
+        long r = Math.round(Math.max(min, Math.min(max, v)));
+        return (int) r;
+    }
+
 
 }

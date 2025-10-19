@@ -3,20 +3,23 @@
 # Automated Application Configuration
 
 payload_size 10
-prepare_time 20
-cooldown_time 5
-run_time 500
-broadcast_interval 20000
+prepare_time 50
+cooldown_time 10
+run_time 60
+broadcast_interval 5000
+
+# number of consecutive add ops followed by n_adds/2 consecutive remove ops
+n_adds 3
 
 # Fault Model Configuration - crash or byzantine
-fault_model byzantine
+fault_model crash
 
 # Byzantine Replica Behavior - none, causality attack, equivocation or impersonation
 f 1
 byzantine equivocation
 
 # App Interaction - interactive or automated
-app_interaction interactive
+app_interaction automated
 
 
 # Static Membership Protocol Configuration

@@ -170,7 +170,6 @@ public class CausalReliableBcastProtocol extends GenericProtocol {
         }
     }
 
-    //TODO ask whats missing to avoid waiting
 
     private boolean verifyCausality(Host sender, Map<Host, Integer> vv) {
         for (Map.Entry<Host, Integer> entry : vv.entrySet()) {

@@ -5,18 +5,17 @@
 payload_size 10
 prepare_time 50
 cooldown_time 10
-run_time 60
-broadcast_interval 5000
+run_time 300
+broadcast_interval 2000
 
 # number of consecutive add ops followed by n_adds/2 consecutive remove ops
-n_adds 3
+n_adds 10
 
 # Fault Model Configuration - crash or byzantine
 fault_model crash
 
 # Byzantine Replica Behavior - none, causality attack, equivocation or impersonation
-f 1
-byzantine equivocation
+f 3
 
 # App Interaction - interactive or automated
 app_interaction automated
@@ -25,11 +24,11 @@ app_interaction automated
 # Static Membership Protocol Configuration
 
 # membership.myhost - this one is different for each process, and you must provide
-membership.neighbors 127.0.0.1:5000,127.0.0.1:6000,127.0.0.1:7000,127.0.0.1:8000
+membership.neighbors 127.0.0.1:8001,127.0.0.1:8002,127.0.0.1:8003,127.0.0.1:8004,127.0.0.1:8005,127.0.0.1:8006,127.0.0.1:8007,127.0.0.1:8008,127.0.0.1:8009,127.0.0.1:8010
 
 # Crypto configuration parameters
 
-# crypto_name - this one is different for each process and you have to provide in the command line
+# crypto_name - this one is different for each process, and you have to provide in the command line
 key_store_folder crypto-material
 key_store_password password
 trust_store crypto-material/truststore.ks

@@ -1,5 +1,7 @@
 package app;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.*;
 
 import org.apache.logging.log4j.LogManager;
@@ -165,14 +167,21 @@ public class AutomatedApp extends GenericProtocol {
     
     private void uponExitTimer(ExitTimer exitTimer, long timerId) {
         logger.info("Exiting...");
-        logger.info("Total adds: {}", totalAdds);
-        logger.info("Total removes: {}", totalRemoves);
-        logger.info("State: {}", HashProducer.hashSet(state));
 
-        //TODO update byzantine or-set, host.membership
-        logger.info("Latencies: ");
-        for(String latency: ORSet.latency_records)
-            logger.info(latency);
+        try (FileWriter writer = new FileWriter("src/main/java/app/logs/crash/log" + self.getPort() + ".txt", true)) {
+            writer.write("Total adds: " + totalAdds + "\n");
+            writer.write("Total removes: " + totalRemoves + "\n");
+            writer.write("State: " + HashProducer.hashSet(state) + "\n");
+
+            writer.write("Latencies:\n");
+            for (String latency : ORSet.latency_records) {
+                writer.write(latency + "\n");
+            }
+
+            writer.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         System.exit(0);
     }

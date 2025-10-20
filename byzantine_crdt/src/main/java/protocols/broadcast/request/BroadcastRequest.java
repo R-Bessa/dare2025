@@ -21,14 +21,18 @@ public class BroadcastRequest extends ProtoRequest {
 	}
 
     public byte[] encode() throws IOException {
-		ByteBuf buffer = ByteBufAllocator.DEFAULT.buffer();
-		Host.serializer.serialize(sender, buffer);
-		buffer.writeInt(payload.length);
-		buffer.writeBytes(payload);
+        ByteBuf buffer = ByteBufAllocator.DEFAULT.buffer();
+        try {
+            Host.serializer.serialize(sender, buffer);
+            buffer.writeInt(payload.length);
+            buffer.writeBytes(payload);
 
-		byte[] result = new byte[buffer.readableBytes()];
-		buffer.resetReaderIndex();
-		buffer.readBytes(result);
-		return result;
-	}
+            byte[] result = new byte[buffer.readableBytes()];
+            buffer.resetReaderIndex();
+            buffer.readBytes(result);
+            return result;
+        } finally {
+            buffer.release();
+        }
+    }
 }

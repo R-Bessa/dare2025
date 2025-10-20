@@ -118,7 +118,7 @@ public class ORSet extends GenericProtocol {
                     op.getAdd_ids().iterator().next().toString();
 
             double latency = (endTime - latencies.remove(k)) + getLatencyPenalty();
-            latency_records.add("Timestamp: " + endTime + "ms | Latency: " + latency + "ms");
+            latency_records.add(endTime + " " + latency); //ms
             return;
         }
 

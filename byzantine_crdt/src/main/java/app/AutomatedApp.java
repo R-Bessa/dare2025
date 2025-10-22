@@ -168,15 +168,14 @@ public class AutomatedApp extends GenericProtocol {
     private void uponExitTimer(ExitTimer exitTimer, long timerId) {
         logger.info("Exiting...");
 
-        try (FileWriter writer = new FileWriter("src/main/java/app/logs/crash/log" + self.getPort() + ".txt", true)) {
+        try (FileWriter writer = new FileWriter("src/main/java/app/simulation/logs/crash/log" + self.getPort() + ".txt", true)) {
             writer.write("Total adds: " + totalAdds + "\n");
             writer.write("Total removes: " + totalRemoves + "\n");
             writer.write("State: " + HashProducer.hashSet(state) + "\n");
 
             writer.write("Latencies:\n");
-            for (String latency : ORSet.latency_records) {
+            for (String latency : ORSet.latency_records)
                 writer.write(latency + "\n");
-            }
 
             writer.flush();
         } catch (IOException e) {

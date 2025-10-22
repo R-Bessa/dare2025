@@ -7,13 +7,13 @@ import org.apache.logging.log4j.Logger;
 import protocols.broadcast.crash.CausalReliableBcastProtocol;
 import protocols.broadcast.notifications.DeliveryNotification;
 import protocols.broadcast.request.BroadcastRequest;
-import protocols.events.ChannelAvailable;
 import protocols.crdt.replies.AddReply;
 import protocols.crdt.replies.ReadReply;
 import protocols.crdt.replies.RemoveReply;
 import protocols.crdt.requests.AddRequest;
 import protocols.crdt.requests.ReadRequest;
 import protocols.crdt.requests.RemoveRequest;
+import protocols.events.SecureChannelAvailable;
 import pt.unl.fct.di.novasys.babel.core.GenericProtocol;
 import pt.unl.fct.di.novasys.babel.exceptions.HandlerRegistrationException;
 import pt.unl.fct.di.novasys.network.data.Host;
@@ -59,7 +59,7 @@ public class ORSet extends GenericProtocol {
 
         /* ----------------------------- Register Notification Handlers ------------------------------ */
         subscribeNotification(DeliveryNotification.NOTIFICATION_ID, this::uponDeliver);
-        subscribeNotification(ChannelAvailable.NOTIFICATION_ID, this::uponChannelAvailable);
+        subscribeNotification(SecureChannelAvailable.NOTIFICATION_ID, this::uponSecureChannelAvailable);
     }
 
 
@@ -105,7 +105,7 @@ public class ORSet extends GenericProtocol {
 
     /* ----------------------------------- Notification Handlers ----------------------------------- */
 
-    public void uponChannelAvailable(ChannelAvailable notification, short sourceProto) {
+    public void uponSecureChannelAvailable(SecureChannelAvailable notification, short sourceProto) {
         this.mySelf = notification.getMyHost();
     }
 

@@ -4,6 +4,7 @@ import app.AutomatedApp;
 import app.InteractiveApp;
 import protocols.broadcast.crash.CausalReliableBcastProtocol;
 import protocols.broadcast.byzantine.ByzantineReliableBcastProtocol;
+import protocols.broadcast.crash.SignedCausalReliableBcastProtocol;
 import protocols.crdt.ORSet;
 import protocols.crdt.ByzantineORSet;
 import protocols.membership.SecureStaticMembershipProtocol;
@@ -38,7 +39,9 @@ public class Main {
             if(props.getProperty(FAULT_MODEL).equals("crash")) {
                 crdt = new ORSet();
                 bcast = new CausalReliableBcastProtocol();
+                //bcast = new SignedCausalReliableBcastProtocol();
                 membership = new StaticMembershipProtocol();
+                //membership = new SecureStaticMembershipProtocol();
 
             } else { // BYZANTINE FAULT TOLERANCE
                 crdt = new ByzantineORSet();

@@ -125,7 +125,7 @@ public class ByzantineReliableBcastProtocol extends GenericProtocol {
 		
 		try {
             byte[] originalSenderSig = SignaturesHelper.generateSignature(req.encode(), myPrivateKey);
-			SignedBroadcastMessage bm = new SignedBroadcastMessage(mySelf, req.encode(), originalSenderSig);
+			SignedBroadcastMessage bm = new SignedBroadcastMessage(mySelf, mySelf, req.encode(), originalSenderSig, null);
 			bm.signMessage(myPrivateKey);
 
             processBroadcastMessage(bm, mySelf);

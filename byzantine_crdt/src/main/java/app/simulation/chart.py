@@ -7,7 +7,7 @@ import pandas as pd
 
 # --- Configuration ---
 alg_dirs = [
-    "./logs/crash"
+    "./logs/crash", "./logs/signed"
 ]
 bin_size = 5
 output_path = "latency_mean_comparison.pdf"
@@ -35,7 +35,7 @@ def parse_algorithm_dir(directory):
                 if not reading_latencies:
                     continue
 
-                parts = re.findall(r"[-+]?\d*\.\d+|\d+", line)
+                parts = re.findall(r"[-+]?\d*\.\d+(?:[Ee][-+]?\d+)?|\d+(?:[Ee][-+]?\d+)?", line)
                 if len(parts) >= 2:
                     try:
                         issue_times.append(float(parts[0]))
@@ -79,7 +79,7 @@ for alg_dir in alg_dirs:
     if bins is None:
         print(f"⚠️ No data found for {alg_name}")
         continue
-    plt.xlim(0, max(bins))
+    plt.xlim(0, 300)
     plt.ylim(0, fixed_ylim[1])
     plt.plot(bins, mean_latency, label=alg_name, linewidth=2, linestyle="--")
     all_latencies.extend(mean_latency.dropna().tolist())

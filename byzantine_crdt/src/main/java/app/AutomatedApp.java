@@ -79,7 +79,7 @@ public class AutomatedApp extends GenericProtocol {
         this.idx = 0;
         this.state = new HashSet<>();
 
-        crdtProtoId = props.getProperty(FAULT_MODEL).equals("crash") ? ORSet.PROTO_ID : ByzantineORSet.PROTO_ID;
+        crdtProtoId = props.getProperty(FAULT_MODEL).equals("crash") ? ORSet.PROTO_ID : ORSet.PROTO_ID;
 
 
         /* ------------------------------- Subscribe Notifications ----------------------------------- */
@@ -168,7 +168,7 @@ public class AutomatedApp extends GenericProtocol {
     private void uponExitTimer(ExitTimer exitTimer, long timerId) {
         logger.info("Exiting...");
 
-        try (FileWriter writer = new FileWriter("src/main/java/app/simulation/logs/crash/log" + self.getPort() + ".txt", true)) {
+        try (FileWriter writer = new FileWriter("src/main/java/app/simulation/logs/byzantine/log" + self.getPort() + ".txt", true)) {
             writer.write("Total adds: " + totalAdds + "\n");
             writer.write("Total removes: " + totalRemoves + "\n");
             writer.write("State: " + HashProducer.hashSet(state) + "\n");

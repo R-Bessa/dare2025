@@ -7,7 +7,7 @@ import pandas as pd
 
 # --- Configuration ---
 alg_dirs = [
-    "./logs/crash", "./logs/signed"
+    "./logs/crash", "./logs/signed", "./logs/byzantine"
 ]
 bin_size = 5
 output_path = "latency_mean_comparison.pdf"

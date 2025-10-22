@@ -88,22 +88,25 @@ public class SignedBroadcastMessage extends SignedProtoMessage {
             if (msg.payload != null) {
                 out.writeInt(msg.payload.length);
                 out.writeBytes(msg.payload);
-            } else {
+            } else
                 out.writeInt(0);
-            }
 
             if (msg.originalSignature != null) {
                 out.writeInt(msg.originalSignature.length);
                 out.writeBytes(msg.originalSignature);
-            } else {
+            } else
                 out.writeInt(0);
-            }
 
-            out.writeInt(msg.version_vector.size());
-            for (Map.Entry<Host, Integer> e : msg.version_vector.entrySet()) {
-                Host.serializer.serialize(e.getKey(), out);
-                out.writeInt(e.getValue());
+            if (msg.version_vector != null) {
+                out.writeInt(msg.version_vector.size());
+                for (Map.Entry<Host, Integer> e : msg.version_vector.entrySet()) {
+                    Host.serializer.serialize(e.getKey(), out);
+                    out.writeInt(e.getValue());
+                }
             }
+            else
+                out.writeInt(0);
+
         }
 
         @Override

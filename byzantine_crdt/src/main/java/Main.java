@@ -44,7 +44,8 @@ public class Main {
                 //membership = new SecureStaticMembershipProtocol();
 
             } else { // BYZANTINE FAULT TOLERANCE
-                crdt = new ByzantineORSet();
+                //crdt = new ByzantineORSet();
+                crdt = new ORSet();
                 bcast = new ByzantineReliableBcastProtocol();
                 membership = new SecureStaticMembershipProtocol();
             }

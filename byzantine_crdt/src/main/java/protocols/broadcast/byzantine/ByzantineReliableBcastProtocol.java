@@ -41,8 +41,6 @@ public class ByzantineReliableBcastProtocol extends GenericProtocol {
 	private PrivateKey myPrivateKey;
 
 
-    //TODO introduce causality and protect with hash graph
-    //TODO app based filter for trust levels? how to handle state transfer?
 	public ByzantineReliableBcastProtocol() {
 		super(PROTO_NAME, PROTO_ID);
 		

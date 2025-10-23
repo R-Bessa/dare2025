@@ -4,7 +4,6 @@ import app.AutomatedApp;
 import app.InteractiveApp;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import protocols.broadcast.byzantine.ByzantineReliableBcastProtocol;
 import protocols.broadcast.crash.CausalReliableBcastProtocol;
 import protocols.broadcast.notifications.DeliveryNotification;
 import protocols.broadcast.request.BroadcastRequest;
@@ -14,7 +13,7 @@ import protocols.crdt.replies.RemoveReply;
 import protocols.crdt.requests.AddRequest;
 import protocols.crdt.requests.ReadRequest;
 import protocols.crdt.requests.RemoveRequest;
-import protocols.events.SecureChannelAvailable;
+import protocols.events.ChannelAvailable;
 import pt.unl.fct.di.novasys.babel.core.GenericProtocol;
 import pt.unl.fct.di.novasys.babel.exceptions.HandlerRegistrationException;
 import pt.unl.fct.di.novasys.network.data.Host;
@@ -60,7 +59,7 @@ public class ORSet extends GenericProtocol {
 
         /* ----------------------------- Register Notification Handlers ------------------------------ */
         subscribeNotification(DeliveryNotification.NOTIFICATION_ID, this::uponDeliver);
-        subscribeNotification(SecureChannelAvailable.NOTIFICATION_ID, this::uponSecureChannelAvailable);
+        subscribeNotification(ChannelAvailable.NOTIFICATION_ID, this::uponChannelAvailable);
     }
 
 
@@ -74,7 +73,7 @@ public class ORSet extends GenericProtocol {
         processAddOperation(op);
         sendReply(new AddReply(op.getElement()), appProtoId);
 
-        sendRequest(new BroadcastRequest(mySelf, op.encode()), ByzantineReliableBcastProtocol.PROTO_ID);
+        sendRequest(new BroadcastRequest(mySelf, op.encode()), CausalReliableBcastProtocol.PROTO_ID);
         latencies.put(req.getAdd_id().toString(), System.nanoTime() / 1_000_000.0);
     }
 
@@ -90,7 +89,7 @@ public class ORSet extends GenericProtocol {
             processRemoveOperation(op);
             sendReply(new RemoveReply(req.getElement()), appProtoId);
 
-            sendRequest(new BroadcastRequest(mySelf, op.encode()), ByzantineReliableBcastProtocol.PROTO_ID);
+            sendRequest(new BroadcastRequest(mySelf, op.encode()), CausalReliableBcastProtocol.PROTO_ID);
             latencies.put(op.getElement(), System.nanoTime() / 1_000_000.0);
         }
     }
@@ -106,7 +105,7 @@ public class ORSet extends GenericProtocol {
 
     /* ----------------------------------- Notification Handlers ----------------------------------- */
 
-    public void uponSecureChannelAvailable(SecureChannelAvailable notification, short sourceProto) {
+    public void uponChannelAvailable(ChannelAvailable notification, short sourceProto) {
         this.mySelf = notification.getMyHost();
     }
 

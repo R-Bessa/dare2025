@@ -79,7 +79,7 @@ public class AutomatedApp extends GenericProtocol {
         this.idx = 0;
         this.state = new HashSet<>();
 
-        crdtProtoId = props.getProperty(FAULT_MODEL).equals("crash") ? ORSet.PROTO_ID : ORSet.PROTO_ID;
+        crdtProtoId = props.getProperty(FAULT_MODEL).equals("crash") ? ORSet.PROTO_ID : ByzantineORSet.PROTO_ID;
 
 
         /* ------------------------------- Subscribe Notifications ----------------------------------- */

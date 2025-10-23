@@ -39,13 +39,10 @@ public class Main {
             if(props.getProperty(FAULT_MODEL).equals("crash")) {
                 crdt = new ORSet();
                 bcast = new CausalReliableBcastProtocol();
-                //bcast = new SignedCausalReliableBcastProtocol();
                 membership = new StaticMembershipProtocol();
-                //membership = new SecureStaticMembershipProtocol();
 
             } else { // BYZANTINE FAULT TOLERANCE
-                //crdt = new ByzantineORSet();
-                crdt = new ORSet();
+                crdt = new ByzantineORSet();
                 bcast = new ByzantineReliableBcastProtocol();
                 membership = new SecureStaticMembershipProtocol();
             }

@@ -1,4 +1,4 @@
-## Configuration file for the SDC example on lab 1
+## Configuration file for dare bft crdts
 
 # Automated Application Configuration
 
@@ -15,10 +15,10 @@ n_adds 10
 fault_model byzantine
 
 # Byzantine Replica Behavior - none, causality attack, equivocation or impersonation
-f 3
+f 1
 
 # App Interaction - interactive or automated
-app_interaction automated
+app_interaction interactive
 
 
 # Static Membership Protocol Configuration
